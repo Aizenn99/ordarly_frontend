@@ -25,6 +25,7 @@ import toast from "react-hot-toast";
 const RoleSection = ({
   title,
   users,
+  usersLoading,
   onConfirmDelete,
   setFormData,
   formData,
@@ -35,72 +36,83 @@ const RoleSection = ({
   return (
     <div className="bg-muted p-6 rounded-xl">
       <h2 className="text-lg font-bold mb-4">{title.toUpperCase()}</h2>
-      {users.length === 0 && (
+
+      {usersLoading ? (
+        <p className="text-muted-foreground animate-pulse">
+          Loading {title} users...
+        </p>
+      ) : users.length === 0 ? (
         <p className="text-muted-foreground">
           No {title.toLowerCase()} users found.
         </p>
-      )}
-      <div className="space-y-3">
-        {users.map((user) => (
-          <div
-            key={user._id}
-            className="flex items-center justify-between bg-white p-3 rounded-lg shadow"
-          >
-            <div className="flex items-center gap-3">
-              <Avatar className="h-9 w-9">
-                <AvatarFallback className="bg-primary1 text-white cursor-pointer">
-                  {user.username?.[0]?.toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <p className="font-medium">{user.username}</p>
-            </div>
-            <div className="flex items-center gap-3 text-muted-foreground">
-              <Dialog open={openEditId === user._id} onOpenChange={(open) => setOpenEditId(open ? user._id : null)}>
-                <DialogTrigger asChild>
-                  <FaUserEdit
-                    className="w-4 h-4 text-primary1 cursor-pointer"
-                    onClick={() =>
-                      setFormData({
-                        id: user._id,
-                        username: user.username,
-                        email: user.email,
-                        role: user.role,
-                        password: "", // keep empty unless being updated
-                      })
-                    }
-                  />
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Edit User</DialogTitle>
-                  </DialogHeader>
-                  <CommonForm
-                    formData={formData}
-                    setformData={setFormData}
-                    buttonText="Update User"
-                    formControls={registerFormControls}
-                    onSubmit={() => {
-                      handleupdateUser();
-                      setOpenEditId(null);
-                    }}
-                  />
-                </DialogContent>
-              </Dialog>
+      ) : (
+        <div className="space-y-3">
+          {users.map((user) => (
+            <div
+              key={user._id}
+              className="flex items-center justify-between bg-white p-3 rounded-lg shadow"
+            >
+              <div className="flex items-center gap-3">
+                <Avatar className="h-9 w-9">
+                  <AvatarFallback className="bg-primary1 text-white cursor-pointer">
+                    {user.username?.[0]?.toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <p className="font-medium">{user.username}</p>
+              </div>
+              <div className="flex items-center gap-3 text-muted-foreground">
+                <Dialog
+                  open={openEditId === user._id}
+                  onOpenChange={(open) =>
+                    setOpenEditId(open ? user._id : null)
+                  }
+                >
+                  <DialogTrigger asChild>
+                    <FaUserEdit
+                      className="w-4 h-4 text-primary1 cursor-pointer"
+                      onClick={() =>
+                        setFormData({
+                          id: user._id,
+                          username: user.username,
+                          email: user.email,
+                          role: user.role,
+                          password: "",
+                        })
+                      }
+                    />
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Edit User</DialogTitle>
+                    </DialogHeader>
+                    <CommonForm
+                      formData={formData}
+                      setformData={setFormData}
+                      buttonText="Update User"
+                      formControls={registerFormControls}
+                      onSubmit={() => {
+                        handleupdateUser();
+                        setOpenEditId(null);
+                      }}
+                    />
+                  </DialogContent>
+                </Dialog>
 
-              <Trash2
-                onClick={() =>
-                  onConfirmDelete({
-                    id: user._id,
-                    username: user.username,
-                    role: user.role,
-                  })
-                }
-                className="h-4 w-4 text-red-600 cursor-pointer"
-              />
+                <Trash2
+                  onClick={() =>
+                    onConfirmDelete({
+                      id: user._id,
+                      username: user.username,
+                      role: user.role,
+                    })
+                  }
+                  className="h-4 w-4 text-red-600 cursor-pointer"
+                />
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
@@ -114,7 +126,7 @@ const initialformData = {
 
 const AdminUser = () => {
   const dispatch = useDispatch();
-  const { usersByRole } = useSelector((state) => state.auth);
+  const { usersByRole, usersLoading } = useSelector((state) => state.auth);
   const [formData, setFormData] = useState(initialformData);
   const [admins, setAdmins] = useState([]);
   const [staff, setStaff] = useState([]);
@@ -156,7 +168,7 @@ const AdminUser = () => {
       username,
       email,
       role,
-      ...(password && { password }), // include password only if not empty
+      ...(password && { password }),
     };
 
     dispatch(editUser({ userId: id, updatedData: updatedFields }))
@@ -192,6 +204,7 @@ const AdminUser = () => {
         <RoleSection
           title="admin"
           users={admins}
+          usersLoading={usersLoading}
           onConfirmDelete={setDeleteTarget}
           setFormData={setFormData}
           formData={formData}
@@ -200,6 +213,7 @@ const AdminUser = () => {
         <RoleSection
           title="kitchen"
           users={kitchen}
+          usersLoading={usersLoading}
           onConfirmDelete={setDeleteTarget}
           setFormData={setFormData}
           formData={formData}
@@ -208,6 +222,7 @@ const AdminUser = () => {
         <RoleSection
           title="staff"
           users={staff}
+          usersLoading={usersLoading}
           onConfirmDelete={setDeleteTarget}
           setFormData={setFormData}
           formData={formData}

@@ -10,7 +10,6 @@ import {
 import { Textarea } from "../ui/textarea";
 import { Button } from "../ui/button";
 
-
 function CommonForm({
   formControls,
   formData,
@@ -110,7 +109,12 @@ function CommonForm({
   }
 
   return (
-    <form onSubmit={onSubmit}>
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit();
+      }}
+    >
       <div className="flex flex-col gap-3">
         {formControls.map((controlItem) => (
           <div className="grid w-full gap-1.5" key={controlItem.name}>

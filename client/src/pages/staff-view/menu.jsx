@@ -21,6 +21,7 @@ import {
   markItemsAsSentToKitchen,
   sendToKitchen,
 } from "@/store/kitchen-slice/order-slice";
+import { changeTableStatus, getTable } from "@/store/admin-slice/table";
 
 const StaffMenu = () => {
   const { menuItem, menucategoris, subcats } = useSelector(
@@ -341,6 +342,16 @@ const StaffMenu = () => {
       .then(() => {
         toast.success("Bill generated successfully");
 
+        // ✅ If it's NOT in edit mode → mark table as available
+        if (!isEditMode && state?.tableId) {
+          dispatch(
+            changeTableStatus({
+              id: state.tableId,
+              formdata: { status: "available" },
+            })
+          );
+        }
+
         // 🧹 Clear localStorage data
         localStorage.removeItem("cart_quantities");
 
@@ -426,16 +437,35 @@ const StaffMenu = () => {
       items: unsentValidItems,
     };
 
+    // ✅ First update table status to "occupied"
+    dispatch(
+      changeTableStatus({
+        id: state.tableId,
+        formdata: { status: "occupied" },
+      })
+    )
+      .unwrap()
+      .then(() => {
+        dispatch(getTable()); // refresh tables
+      })
+      .catch((err) => {
+        console.error("⚠️ Failed to update table status:", err);
+      });
+
+    // ✅ Then send KOT
     dispatch(sendToKitchen(kotPayload))
       .unwrap()
       .then((res) => {
         toast.success(`✅ Order sent to kitchen (KOT #${res.kotNumber})`);
 
+        // ❌ useState(...) is wrong — ✅ use the setter directly:
+        setopenCart(false); // ✅ FIXED
+
         // ✅ Mark sent quantities in backend
         dispatch(markItemsAsSentToKitchen(state.tableName))
           .unwrap()
           .then(() => {
-            dispatch(getCartByTable(state.tableName)); // Refresh updated cart
+            dispatch(getCartByTable(state.tableName)); // Refresh cart
           })
           .catch(() => {
             toast.error("⚠️ Failed to mark items as sent");
@@ -554,7 +584,7 @@ const StaffMenu = () => {
               {filteredMenuItem.map((item) => (
                 <div
                   key={item._id}
-                  className="cursor-pointer bg-[#E3F4F4] shadow-lg rounded-xl max-h-[280px] min-h-[280px] flex flex-col overflow-hidden"
+                  className="cursor-pointer bg-[#E3F4F4] shadow-lg rounded-xl max-h-[280px] min-h-[255px] flex flex-col overflow-hidden"
                 >
                   <img
                     onClick={() => handleItemClick(item)}
@@ -568,12 +598,9 @@ const StaffMenu = () => {
                       <h3 className="font-semibold text-md text-gray-800 mb-1">
                         {item.title}
                       </h3>
-                      <div className="text-sm text-gray-600 overflow-y-auto h-[45px] pr-1 scrollbar-hide">
-                        {item.description}
-                      </div>
                     </div>
                     <div className="flex justify-between items-center mt-2">
-                      <span className="font-semibold text-sm text-black">
+                      <span className=" text-sm text-black">
                         ₹ {item.price}
                       </span>
                       {state?.tableName && quantities[item._id] ? (
@@ -802,10 +829,38 @@ const StaffMenu = () => {
                   {selectedItem.description}
                 </p>
               </div>
-              <div className="bg-white rounded-xl p-4 h-full max-h-400"></div>
-              <button className="mt-auto bg-primary1 text-white py-2 px-4 rounded-lg">
-                Add to Cart
-              </button>
+              <div className="p-4 bg-white" ></div>
+              <div className="mt-auto">
+                {state?.tableName && quantities[selectedItem._id] ? (
+                  <div className="flex items-center justify-between mt-4">
+                    <button
+                      className="bg-primary1 text-white w-30 h-10 text-2xl rounded-lg"
+                      onClick={() => handleDecrease(selectedItem._id)}
+                    >
+                      -
+                    </button>
+                    <input
+                      type="text"
+                      value={quantities[selectedItem._id]}
+                      readOnly
+                      className="w-10 text-center text-lg  bg-transparent border-none outline-none"
+                    />
+                    <button
+                      className="bg-primary1 text-white w-30 h-10 text-2xl rounded-lg"
+                      onClick={() => handleIncrease(selectedItem._id)}
+                    >
+                      +
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => handleAddClick(selectedItem._id)}
+                    className="bg-primary1 w-full text-white py-2 px-4 rounded-lg mt-4"
+                  >
+                    Add to Cart
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </SheetContent>

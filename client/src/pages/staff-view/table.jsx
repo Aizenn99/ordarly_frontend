@@ -1,3 +1,5 @@
+"use client";
+
 import CurrentDate from "@/components/staff-view/date";
 import {
   Collapsible,
@@ -11,6 +13,7 @@ import { FaChevronDown, FaChevronUp } from "react-icons/fa";
 import { useDispatch, useSelector } from "react-redux";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
+import { io } from "socket.io-client";
 
 const StaffTable = () => {
   const dispatch = useDispatch();
@@ -21,6 +24,25 @@ const StaffTable = () => {
     return stored ? JSON.parse(stored) : {};
   });
 
+  const guestInfo = JSON.parse(localStorage.getItem("guestInfo"));
+  const { tables, spaces } = useSelector((state) => state.adminTable);
+  const socket = io(`${import.meta.env.VITE_API_URL}`);
+
+  useEffect(() => {
+    socket.on("table-status-changed", (updatedTable) => {
+      dispatch(getTable()); // You can optimize by updating only that table
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [dispatch]);
+
+  useEffect(() => {
+    dispatch(getTable());
+    dispatch(fetchSpaces());
+  }, [dispatch]);
+
   useEffect(() => {
     localStorage.setItem("collapseStates", JSON.stringify(collapseStates));
   }, [collapseStates]);
@@ -29,16 +51,6 @@ const StaffTable = () => {
     const control = addTableFormControls.find((ctrl) => ctrl.name === name);
     return control?.options?.find((opt) => opt.id === id)?.label || id;
   };
-
-  const { tables, spaces } = useSelector((state) => state.adminTable);
-
-  useEffect(() => {
-    dispatch(getTable());
-  }, [dispatch]);
-
-  useEffect(() => {
-    dispatch(fetchSpaces());
-  }, [dispatch]);
 
   const availableTables = tables.filter(
     (table) => getOptionLabel("status", table.status) === "available"
@@ -52,13 +64,13 @@ const StaffTable = () => {
 
   return (
     <div className="p-3 md:p-4 mt-1">
-      {/* Table Stats */}
       <div className="flex justify-end items-end mb-4">
         <span>
           <CurrentDate />
         </span>
       </div>
 
+      {/* Table Stats */}
       <div className="w-full gap-3 mb-4 grid grid-cols-4">
         <div className="text-sm p-4 min-h-[70px] flex flex-col items-center justify-center rounded-2xl shadow-md shadow-gray-100 border border-yellow-600 bg-beige text-center whitespace-normal break-words">
           <h1>Total Tables</h1>
@@ -86,7 +98,7 @@ const StaffTable = () => {
         </div>
       </div>
 
-      {/* Spaces + Tables */}
+      {/* Spaces and Tables */}
       <div className="p-3 md:p-4 mt-4">
         {spaces && spaces.length > 0 ? (
           spaces.map((space) => {
@@ -138,48 +150,35 @@ const StaffTable = () => {
                             ? "border-blue-600"
                             : "bg-gray-100";
 
-                        const isAvailable = statusLabel === "available";
+                        const isClickable =
+                          statusLabel === "available" ||
+                          statusLabel === "occupied";
 
                         return (
                           <div
                             key={index}
                             className={`cardB w-full p-3 rounded shadow border ${cardColor} ${
-                              isAvailable
+                              isClickable
                                 ? "cursor-pointer hover:shadow-lg transition"
-                                : ""
+                                : "pointer-events-none opacity-60"
                             }`}
                             onClick={() => {
-                              if (isAvailable) {
-                                const guestInfo = JSON.parse(
-                                  localStorage.getItem("guestInfo")
-                                );
+                              if (!isClickable) return;
 
-                                if (
-                                  guestInfo &&
-                                  guestInfo.tableName === table.tableName
-                                ) {
-                                  // ✅ Navigate directly to menu if guestCount is set for this table
-                                  navigate("/staff/menu", {
-                                    state: {
-                                      tableId: table._id,
-                                      tableName: table.tableName,
-                                      spaceName: space.SpaceName,
-                                      capacity: table.capacity,
-                                      guestCount: guestInfo.guestCount,
-                                    },
-                                  });
-                                } else {
-                                  // 🚪 Go to customer info to set guest count
-                                  navigate("/staff/customer", {
-                                    state: {
-                                      tableId: table._id,
-                                      tableName: table.tableName,
-                                      spaceName: space.SpaceName,
-                                      capacity: table.capacity,
-                                    },
-                                  });
-                                }
-                              }
+                              const guestCount = guestInfo?.guestCount;
+                              const route = guestCount
+                                ? "/staff/menu"
+                                : "/staff/customer";
+
+                              navigate(route, {
+                                state: {
+                                  tableId: table._id,
+                                  tableName: table.tableName,
+                                  spaceName: space.SpaceName,
+                                  capacity: table.capacity,
+                                  guestCount: guestCount,
+                                },
+                              });
                             }}
                           >
                             <h2 className="font-bold text-sm text-center mb-2">
@@ -188,11 +187,10 @@ const StaffTable = () => {
                             <p className="text-sm flex justify-center items-center gap-2 mb-2">
                               Size: {table.capacity}
                             </p>
-
                             <Badge
                               className={`text-sm mx-auto flex items-center justify-center mb-2
                                 ${
-                                  isAvailable
+                                  statusLabel === "available"
                                     ? "bg-green-200 text-primary1 p-1"
                                     : statusLabel === "occupied"
                                     ? "bg-red-200 text-red-600"

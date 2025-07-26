@@ -12,6 +12,8 @@ const CustomerInfo = () => {
   const [guestCount, setGuestCount] = useState(0);
   const tableCapacity = state?.capacity || 0;
 
+  const tableId = state?.tableId || "";
+
   useEffect(() => {
     dispatch(getTable());
     dispatch(fetchSpaces());
@@ -19,12 +21,12 @@ const CustomerInfo = () => {
     const guestInfoMap = JSON.parse(localStorage.getItem("guestInfoMap")) || {};
     const currentTableGuest = guestInfoMap[state?.tableName];
 
-    // ✅ Auto-navigate to menu if guest count already exists for this table
     if (currentTableGuest) {
       navigate("/staff/menu", {
         state: {
           guestCount: currentTableGuest.guestCount,
           tableName: state?.tableName,
+          tableId: state?.tableId,
           spaceName: state?.spaceName,
         },
       });
@@ -53,11 +55,11 @@ const CustomerInfo = () => {
 
     toast.success(`Guest count of ${guestCount} added!`);
 
-    // ✅ Store guest info per table
     const existingData = JSON.parse(localStorage.getItem("guestInfoMap")) || {};
     existingData[state?.tableName] = {
       guestCount,
       spaceName: state?.spaceName,
+      tableId: state?.tableId,
     };
     localStorage.setItem("guestInfoMap", JSON.stringify(existingData));
 
@@ -65,6 +67,7 @@ const CustomerInfo = () => {
       state: {
         guestCount,
         tableName: state?.tableName,
+        tableId: state?.tableId,
         spaceName: state?.spaceName,
       },
     });
@@ -86,6 +89,7 @@ const CustomerInfo = () => {
         <span className="text-xs text-gray-500">
           Capacity: {tableCapacity}
         </span>
+        
       </div>
 
       <div className="flex flex-col gap-4 mt-4 max-w-sm mx-auto w-full">

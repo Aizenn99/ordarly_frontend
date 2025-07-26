@@ -51,6 +51,22 @@ export const updateTable = createAsyncThunk(
   }
 );
 
+export const changeTableStatus = createAsyncThunk(
+  "admin/change-table-status",  
+  async ({ id, formdata }) => {
+    const result = await axios.put(
+      `${import.meta.env.VITE_API_URL}/api/admin/change-table-status/${id}`,
+      formdata,
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    return result.data; // updated table inside result.data.data
+  }
+);
+
 // ✅ Delete Table
 export const deleteTable = createAsyncThunk(
   "admin/delete-table",
@@ -172,7 +188,20 @@ export const tableSlice = createSlice({
       })
       .addCase(fetchSpaces.rejected, (state) => {
         state.isLoading = false;
+      }).addCase(changeTableStatus.pending, (state) => {
+        state.isLoading = true;        
+      })
+      .addCase(changeTableStatus.fulfilled, (state, action) => {
+        state.isLoading = false;
+        const updatedTable = action.payload.data;
+        state.tables = state.tables.map((table) =>
+          table._id === updatedTable._id ? updatedTable : table
+        );
+      })
+      .addCase(changeTableStatus.rejected, (state) => {
+        state.isLoading = false;
       });
+      ;
   },
 });
 
