@@ -36,6 +36,7 @@ import StaffNotifications from "./pages/staff-view/notification";
 
 import Loader from "./components/common/Loader";
 import { Toaster } from "react-hot-toast";
+import StaffSettings from "./pages/staff-view/settings";
 
 function App() {
   const { user, isAuthenticated, isLoading } = useSelector(
@@ -170,6 +171,7 @@ function App() {
           <Route path="bills" element={<StaffBill />} />
           <Route path="pay-bill" element={<StaffPayBill />} />
           <Route path="notifications" element={<StaffNotifications />} />
+          <Route path="settings" element={<StaffSettings />} />
         </Route>
       </Routes>
     </div>

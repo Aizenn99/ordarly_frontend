@@ -161,8 +161,10 @@ const StaffMenu = () => {
           setQuantities(() => {
             const initial = {};
             res.items.forEach((item) => {
-              initial[item.itemId._id] = item.quantity;
+              const itemId = item.itemId?._id || item.itemId;
+              initial[itemId] = item.quantity;
             });
+
             return initial;
           });
         })
@@ -174,7 +176,8 @@ const StaffMenu = () => {
     if (cart?.items?.length) {
       const initialQuantities = {};
       cart.items.forEach((item) => {
-        initialQuantities[item.itemId._id] = item.quantity;
+        const itemId = item.itemId?._id || item.itemId;
+        initialQuantities[itemId] = item.quantity;
       });
       setQuantities(initialQuantities);
     } else {
@@ -684,62 +687,70 @@ const StaffMenu = () => {
                 {/* Scrollable Items Section */}
                 <div className="flex-1 overflow-y-auto">
                   <div className="bg-gray-100 rounded-2xl p-4 space-y-4">
-                    {cart.items.map((cartItem) => {
-                      const menuData = menuItem.find(
-                        (i) =>
-                          i._id === cartItem.itemId._id ||
-                          i._id === cartItem.itemId
-                      );
-                      if (!menuData) return null;
+                    {(cart.items || [])
+                      .filter((cartItem) => {
+                        const itemId = cartItem.itemId?._id || cartItem.itemId;
+                        return menuItem.some((m) => m._id === itemId);
+                      })
+                      .map((cartItem) => {
+                        const itemId = cartItem.itemId?._id || cartItem.itemId;
+                        const menuData = menuItem.find((i) => i._id === itemId);
+                        if (!menuData) {
+                          console.warn(
+                            "⚠️ menuData not found for item:",
+                            cartItem
+                          );
+                          return null;
+                        }
 
-                      const category = menucategoris.find(
-                        (cat) => cat._id === menuData.category
-                      );
+                        const category = menucategoris.find(
+                          (cat) => cat._id === menuData?.category
+                        );
 
-                      const isFullySent =
-                        (cartItem.sentQuantity || 0) >= cartItem.quantity;
+                        const isFullySent =
+                          (cartItem.sentQuantity || 0) >= cartItem.quantity;
 
-                      return (
-                        <div
-                          key={cartItem._id}
-                          className={`p-3 flex flex-col gap-1 min-h-[70px] ${
-                            isFullySent ? "opacity-50" : ""
-                          }`}
-                        >
-                          <div className="flex justify-between items-center">
-                            <span className="text-md flex items-center gap-2 font-semibold text-gray-800">
-                              {category?.icon ? (
-                                <img
-                                  src={category.icon}
-                                  alt={category.name}
-                                  className="w-4 h-4"
-                                />
-                              ) : (
-                                <LuUtensils className="w-4 h-4" />
-                              )}
-                              {menuData.title}
-                            </span>
+                        return (
+                          <div
+                            key={cartItem._id}
+                            className={`p-3 flex flex-col gap-1 min-h-[70px] ${
+                              isFullySent ? "opacity-50" : ""
+                            }`}
+                          >
+                            <div className="flex justify-between items-center">
+                              <span className="text-md flex items-center gap-2 font-semibold text-gray-800">
+                                {category?.icon ? (
+                                  <img
+                                    src={category.icon}
+                                    alt={category.name}
+                                    className="w-4 h-4"
+                                  />
+                                ) : (
+                                  <LuUtensils className="w-4 h-4" />
+                                )}
+                                {menuData.title}
+                              </span>
 
-                            <span className="text-sm font-semibold text-black">
-                              Qty: {cartItem.quantity}
-                            </span>
+                              <span className="text-sm font-semibold text-black">
+                                Qty: {cartItem.quantity}
+                              </span>
+                            </div>
+
+                            <div className="flex justify-between items-center text-sm text-gray-600">
+                              <span>₹ {menuData.price}</span>
+                              <span className="text-black font-medium">
+                                ₹ {menuData.price * cartItem.quantity}
+                              </span>
+                            </div>
+
+                            {isFullySent && (
+                              <span className="text-xs text-green-600 mt-1">
+                                ✅ Sent to Kitchen
+                              </span>
+                            )}
                           </div>
-
-                          <div className="flex justify-between items-center text-sm text-gray-600">
-                            <span>₹ {menuData.price}</span>
-                            <span className="text-black font-medium">
-                              ₹ {menuData.price * cartItem.quantity}
-                            </span>
-                          </div>
-
-                          {isFullySent && (
-                            <span className="text-xs text-green-600 mt-1">
-                              ✅ Sent to Kitchen
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
                   </div>
                 </div>
 
@@ -829,7 +840,7 @@ const StaffMenu = () => {
                   {selectedItem.description}
                 </p>
               </div>
-              <div className="p-4 bg-white" ></div>
+              <div className="p-4 bg-white"></div>
               <div className="mt-auto">
                 {state?.tableName && quantities[selectedItem._id] ? (
                   <div className="flex items-center justify-between mt-4">
