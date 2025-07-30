@@ -1,7 +1,7 @@
 import React from "react";
 
 const StaffHome = () => {
-  return <div>StaffHome</div>;
+  return <div>      </div>;
 };
 
 export default StaffHome;

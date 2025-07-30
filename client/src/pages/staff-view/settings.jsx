@@ -2,7 +2,9 @@ import React from 'react'
 
 const StaffSettings = () => {
   return (
-    <div>StaffSettings</div>
+    <div>StaffSettings  
+    </div>
+    
   )
 }
 

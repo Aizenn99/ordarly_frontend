@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { getAllBillsAdmin } from "@/store/staff-slice/Bill";
+import { getAllBillsAdmin, markBillAsPaid } from "@/store/staff-slice/Bill";
 import {
   Table,
   TableBody,
@@ -18,6 +18,23 @@ import { Menu } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import io from "socket.io-client";
 import { toast } from "react-hot-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { FcGoogle } from "react-icons/fc";
+import { BsCash, BsFillUsbDriveFill } from "react-icons/bs";
+import { FaUsb, FaWhatsapp } from "react-icons/fa";
+import { TiPrinter } from "react-icons/ti";
+import { jsPDF } from "jspdf"; // ✅ PDF generator
+
 
 const socket = io(`${import.meta.env.VITE_API_URL}`);
 
@@ -28,6 +45,8 @@ const AdminBills = () => {
   const [filteredBills, setFilteredBills] = useState([]);
   const [selectedBill, setSelectedBill] = useState(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+    const [phoneNumber, setPhoneNumber] = useState(""); // ✅ input phone number
+
 
   const [dateFilter, setDateFilter] = useState(
     localStorage.getItem("billDateFilter") || "today"
@@ -57,6 +76,93 @@ const AdminBills = () => {
       socket.off("bill-paid");
     };
   }, [dispatch]);
+
+  const [loading, setLoading] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("");
+
+  const handleMarkAsPaid = () => {
+    if (!paymentMethod) {
+      toast.error("Please select a payment method");
+      return;
+    }
+    if (!selectedBill) {
+      toast.error("No bill selected");
+      return;
+    }
+
+    setLoading(true);
+    dispatch(
+      markBillAsPaid({ billNumber: selectedBill.billNumber, paymentMethod })
+    )
+      .unwrap()
+      .catch((err) => {
+        toast.error(err?.message || "Could not mark bill as paid ❌");
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  };
+
+   const handleSendWhatsApp = async () => {
+    if (!selectedBill) {
+      toast.error("No bill selected");
+      return;
+    }
+    if (!phoneNumber) {
+      toast.error("Please enter a phone number");
+      return;
+    }
+
+    try {
+      const doc = new jsPDF();
+      doc.setFontSize(14);
+      doc.text("ORDARLY", 105, 10, { align: "center" });
+      doc.setFontSize(10);
+
+      doc.text(`Bill #: ${selectedBill.billNumber}`, 10, 20);
+      doc.text(`Table: ${selectedBill.tableName || "-"}`, 10, 26);
+      doc.text(`Guests: ${selectedBill.guestCount || "-"}`, 10, 32);
+      doc.text(
+        `Date: ${new Date(selectedBill.createdAt).toLocaleDateString()} ${new Date(
+          selectedBill.createdAt
+        ).toLocaleTimeString()}`,
+        10,
+        38
+      );
+
+      let y = 50;
+      selectedBill.items.forEach((item) => {
+        doc.text(`${item.itemName} x${item.quantity} - ₹${item.totalPrice}`, 10, y);
+        y += 8;
+      });
+
+      y += 6;
+      doc.text(`Subtotal: ₹${selectedBill.subtotal?.toFixed(2) || "0.00"}`, 10, y);
+      y += 8;
+      doc.text(`Grand Total: ₹${selectedBill.totalAmount.toFixed(2)}`, 10, y);
+
+      const pdfBlob = doc.output("blob");
+      const formData = new FormData();
+      formData.append("file", pdfBlob, `bill-${selectedBill.billNumber}.pdf`);
+      formData.append("phoneNumber", phoneNumber);
+
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/send-whatsapp`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (res.ok) {
+        toast.success("Bill sent via WhatsApp ✅");
+      } else {
+        toast.error("Failed to send via WhatsApp ❌");
+      }
+    } catch (err) {
+      toast.error("Error generating PDF ❌");
+    }
+  };
+
+
+  // Browser thermal print with all details (aligned like screenshot)
 
   useEffect(() => {
     if (!bills) return;
@@ -104,9 +210,171 @@ const AdminBills = () => {
       default:
         filtered = bills;
     }
-
     setFilteredBills(filtered);
   }, [bills, dateFilter, customRange]);
+
+  const handleThermalBrowserPrint = () => {
+  if (!selectedBill) {
+    toast.error("No bill selected");
+    return;
+  }
+
+  const printWindow = window.open("", "_blank");
+  const billHtml = `
+    <html>
+      <head>
+        <title>Bill #${selectedBill.billNumber}</title>
+        <style>
+          body {
+            font-family: monospace;
+            font-size: 12px;
+            width: 76mm;
+            margin: 0;
+            padding: 5px;
+          }
+          h2 { text-align: center; font-size: 16px; margin: 5px 0; font-weight: bold; }
+          p { margin: 2px 0; text-align: center; }
+          hr { border-top: 1px dashed #000; margin: 5px 0; }
+          table { width: 100%; border-collapse: collapse; }
+          td, th { font-size: 12px; padding: 2px 0; }
+          th { border-bottom: 1px solid #000; }
+          .left { text-align: left; }
+          .center { text-align: center; }
+          .right { text-align: right; }
+          .totals { margin-top: 5px; }
+          .totals div { display: flex; justify-content: space-between; }
+          .grand {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            font-size: 13px;
+            margin-top: 8px;
+            border-top: 1px solid #000;
+            padding-top: 4px;
+          }
+          .neg { color: red; }
+          .pos { color: green; }
+        </style>
+      </head>
+      <body>
+        <h2>ORDARLY</h2>
+        <p>Sanjay Ghodawat University</p>
+        <p>23SCIA50014</p>
+        <p>www.ordarly.com</p>
+        <p>+91 8459278930</p>
+        <hr/>
+        <div style="display:flex; justify-content:space-between; font-size:12px;">
+          <div>
+            <p><strong>Bill #${selectedBill.billNumber}</strong></p>
+            <p>Table: ${selectedBill.tableName || "-"}</p>
+          </div>
+          <div style="text-align:right;">
+            <p>Date: ${new Date(selectedBill.createdAt).toLocaleDateString()}</p>
+            <p>Time: ${new Date(selectedBill.createdAt).toLocaleTimeString()}</p>
+          </div>
+        </div>
+        <hr/>
+        <table>
+          <thead>
+            <tr>
+              <th class="left">Name</th>
+              <th class="center">Price</th>
+              <th class="center">Qty</th>
+              <th class="right">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${selectedBill.items
+              .map(
+                (item) => `
+                <tr>
+                  <td class="left">${item.itemName}</td>
+                  <td class="center">₹${item.unitPrice}</td>
+                  <td class="center">${item.quantity}</td>
+                  <td class="right">₹${item.totalPrice}</td>
+                </tr>`
+              )
+              .join("")}
+          </tbody>
+        </table>
+        <hr/>
+        <div class="totals">
+          <div><span>Subtotal</span><span>₹${selectedBill.subtotal?.toFixed(2) || "0.00"}</span></div>
+          ${
+            selectedBill.discount > 0
+              ? `<div><span>Discount</span><span class="neg">-₹${selectedBill.discount.toFixed(2)}</span></div>`
+              : ""
+          }
+          ${selectedBill.taxBreakdown
+            .map(
+              (tax) => `
+            <div><span>${tax.name} (${tax.value}${tax.unit === "PERCENTAGE" ? "%" : "₹"})</span>
+            <span>₹${tax.amount.toFixed(2)}</span></div>
+          `
+            )
+            .join("")}
+          ${
+            selectedBill.serviceCharge > 0
+              ? `<div><span>Service Charge</span><span>₹${selectedBill.serviceCharge.toFixed(2)}</span></div>`
+              : ""
+          }
+          ${
+            selectedBill.deliveryFee > 0
+              ? `<div><span>Delivery Fee</span><span>₹${selectedBill.deliveryFee.toFixed(2)}</span></div>`
+              : ""
+          }
+          ${
+            selectedBill.packagingFee > 0
+              ? `<div><span>Packaging Fee</span><span>₹${selectedBill.packagingFee.toFixed(2)}</span></div>`
+              : ""
+          }
+          ${
+            selectedBill.roundOff !== 0
+              ? `<div><span>Round Off</span><span>${selectedBill.roundOff > 0 ? "+" : "-"}₹${Math.abs(
+                  selectedBill.roundOff
+                ).toFixed(2)}</span></div>`
+              : ""
+          }
+        </div>
+        <div class="grand">
+          <span>Grand Total</span>
+          <span>₹${selectedBill.totalAmount.toFixed(2)}</span>
+        </div>
+        <hr/>
+        <p>Thank you. Visit Again.</p>
+      </body>
+    </html>
+  `;
+  printWindow.document.write(billHtml);
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.print();
+};
+
+
+
+  // Direct ESC/POS via backend
+  const handleDirectPrint = async () => {
+    if (!selectedBill) {
+      toast.error("No bill selected");
+      return;
+    }
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/print`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bill: selectedBill }),
+      });
+      if (res.ok) {
+        toast.success("Bill sent to thermal printer ✅");
+      } else {
+        toast.error("Printer error ❌");
+      }
+    } catch (err) {
+      toast.error("Could not connect to printer ❌");
+    }
+  };
+
 
   useEffect(() => {
     localStorage.setItem("billDateFilter", dateFilter);
@@ -116,13 +384,9 @@ const AdminBills = () => {
     localStorage.setItem("billCustomRange", JSON.stringify(customRange));
   }, [customRange]);
 
-  const handleExcelDownload = () => {
-    alert("Excel generation logic goes here");
-  };
-
   return (
     <div className="p-2 space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
           <div className="hidden sm:flex flex-wrap gap-2">
             {["today", "yesterday", "last 7 Days", "last 30 Days"].map(
@@ -154,7 +418,7 @@ const AdminBills = () => {
         <div className="flex items-center justify-between gap-2">
           <Button
             className="bg-yellow-600 text-white"
-            onClick={handleExcelDownload}
+            
           >
             Generate Excel
           </Button>
@@ -204,195 +468,286 @@ const AdminBills = () => {
           </TableHeader>
           <TableBody>
             {filteredBills.length > 0 ? (
-              filteredBills.map((bill, index) => {
-                const taxSettings =
-                  bill.settings?.filter((s) => s.type === "TAX") || [];
-
-                return (
-                  <Sheet
-                    key={bill._id}
-                    open={sheetOpen && selectedBill?._id === bill._id}
-                    onOpenChange={setSheetOpen}
-                  >
-                    <SheetTrigger asChild>
-                      <TableRow
-                        className="cursor-pointer"
-                        onClick={() => setSelectedBill(bill)}
-                      >
-                        <TableCell>{index + 1}</TableCell>
-                        <TableCell>
-                          {new Date(bill.createdAt).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell>{bill.spaceName || "-"}</TableCell>
-                        <TableCell>{bill.tableName || "-"}</TableCell>
-                        <TableCell>{bill.guestCount || "-"}</TableCell>
-                        <TableCell>{bill.totalAmount}</TableCell>
-                        <TableCell
-                          className={
-                            bill.status === "PAID"
-                              ? "text-green-600"
-                              : "text-red-500"
-                          }
-                        >
-                          {bill.status}
-                        </TableCell>
-                      </TableRow>
-                    </SheetTrigger>
-                    <SheetContent
-                      side="right"
-                      className="w-[370px] sm:w-[420px]"
+              filteredBills.map((bill, index) => (
+                <Sheet
+                  key={bill._id}
+                  open={sheetOpen && selectedBill?._id === bill._id}
+                  onOpenChange={setSheetOpen}
+                >
+                  <SheetTrigger asChild>
+                    <TableRow
+                      className="cursor-pointer"
+                      onClick={() => setSelectedBill(bill)}
                     >
-                      <div className="flex justify-around p-3 pt-10 items-center">
-                        <Button
-                          variant="destructive"
-                          className="rounded-2xl w-25"
-                        >
-                          DELETE
-                        </Button>
-                        <Button variant="default" className="rounded-2xl w-25">
-                          EDIT
-                        </Button>
-                        <span
-                          className={`text-xs font-semibold px-2 py-1 w-25 h-9.5 flex items-center justify-center rounded-full ${
-                            bill.status === "PAID"
-                              ? "bg-green-100 text-primary1 border border-primary1"
-                              : "bg-red-100 text-red-700 border border-red-300"
-                          }`}
-                        >
-                          {bill.status === "PAID" ? "Paid" : "Unpaid"}
-                        </span>
-                      </div>
+                      <TableCell>{index + 1}</TableCell>
+                      <TableCell>
+                        {new Date(bill.createdAt).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>{bill.spaceName || "-"}</TableCell>
+                      <TableCell>{bill.tableName || "-"}</TableCell>
+                      <TableCell>{bill.guestCount || "-"}</TableCell>
+                      <TableCell>{bill.totalAmount}</TableCell>
+                      <TableCell
+                        className={
+                          bill.status === "PAID"
+                            ? "text-green-600"
+                            : "text-red-500"
+                        }
+                      >
+                        {bill.status}
+                      </TableCell>
+                    </TableRow>
+                  </SheetTrigger>
+                  <SheetContent
+                    side="right"
+                    className="w-[370px] sm:w-[420px] overflow-y-auto"
+                  >
+                    <div className="flex justify-around p-3 pt-10 items-center">
+                      <Button
+                        variant="destructive"
+                        className="rounded-2xl w-25"
+                      >
+                        DELETE
+                      </Button>
+                      <Button variant="default" className="rounded-2xl w-25">
+                        EDIT
+                      </Button>
+                      <span
+                        className={`text-xs font-semibold px-2 py-1 w-25 h-10 flex items-center justify-center rounded-full ${
+                          bill.status === "PAID"
+                            ? "bg-green-100 text-primary1"
+                            : "bg-red-100 text-red-700"
+                        }`}
+                      >
+                        {bill.status === "PAID" ? "Paid" : "Unpaid"}
+                      </span>
+                    </div>
 
-                      <div className="text-center text-sm px-4">
-                        <h2 className="text-xl font-bold">ORDARLY</h2>
-                        <p>Sanjay Ghodawat University</p>
-                        <p>23SCIA50014</p>
-                        <p>www.ordarly.com</p>
-                        <p>+91 8459278930</p>
-                        <hr className="my-2" />
-                        <div className="flex justify-between text-left text-xs">
-                          <div>
-                            <p>
-                              <strong>Bill #{bill.billNumber}</strong>
-                            </p>
-                            <p>Table: {bill.tableName}</p>
-                          </div>
-                          <div>
-                            <p>
-                              Date:{" "}
-                              {new Date(bill.createdAt).toLocaleDateString()}
-                            </p>
-                            <p>
-                              Time:{" "}
-                              {new Date(bill.createdAt).toLocaleTimeString()}
-                            </p>
-                          </div>
+                    {/* Print + Share */}
+                    <div className="flex justify-around items-center gap-4 my-3">
+                    {/* <input
+                        type="text"
+                        className="border p-2 rounded"
+                        placeholder="Enter customer phone number"
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(e.target.value)}
+                      /> */}
+
+                      <Button  onClick={handleSendWhatsApp} className="w-20 h-10 rounded-lg cursor-pointer " > 
+                      <FaWhatsapp
+                        size={24}
+                        className=" cursor-pointer"
+                       
+                        title="WhatsApp"
+                      />
+                      </Button>
+                      <Button   onClick={handleThermalBrowserPrint} className="w-20 h-10 rounded-lg  cursor-pointer " >
+                      <TiPrinter
+                        size={24}
+                        className=" cursor-pointer"
+                       
+                        title="Browser Print"
+                      />
+                      </Button>
+
+                      <Button  onClick={handleDirectPrint} className="w-20 h-10 rounded-lg cursor-pointer" >
+                      <FaUsb
+                        size={24}
+                        className=" cursor-pointer"
+                       
+                        title="Direct Thermal Print"
+                      />
+                      </Button>
+                    </div>
+                    <div className="text-center text-sm px-4">
+                      <h2 className="text-xl font-bold">ORDARLY</h2>
+                      <p>Sanjay Ghodawat University</p>
+                      <p>23SCIA50014</p>
+                      <p>www.ordarly.com</p>
+                      <p>+91 8459278930</p>
+                      <hr className="my-2" />
+                      <div className="flex justify-between text-left text-xs">
+                        <div>
+                          <p>
+                            <strong>Bill #{bill.billNumber}</strong>
+                          </p>
+                          <p>Table: {bill.tableName}</p>
                         </div>
-                        <hr className="my-2" />
-                        <table className="w-full text-xs">
-                          <thead>
-                            <tr>
-                              <th align="left">Name</th>
-                              <th>Price</th>
-                              <th>Qty</th>
-                              <th align="right">Total</th>
+                        <div>
+                          <p>
+                            Date:{" "}
+                            {new Date(bill.createdAt).toLocaleDateString()}
+                          </p>
+                          <p>
+                            Time:{" "}
+                            {new Date(bill.createdAt).toLocaleTimeString()}
+                          </p>
+                        </div>
+                      </div>
+                      <hr className="my-2" />
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr>
+                            <th align="left">Name</th>
+                            <th>Price</th>
+                            <th>Qty</th>
+                            <th align="right">Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {bill.items.map((item, i) => (
+                            <tr key={i}>
+                              <td align="left">{item.itemName}</td>
+                              <td>₹{item.unitPrice}</td>
+                              <td>{item.quantity}</td>
+                              <td align="right">₹{item.totalPrice}</td>
                             </tr>
-                          </thead>
-                          <tbody>
-                            {bill.items.map((item, i) => (
-                              <tr key={i}>
-                                <td align="left">{item.itemName}</td>
-                                <td>₹{item.unitPrice}</td>
-                                <td>{item.quantity}</td>
-                                <td align="right">₹{item.totalPrice}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                        <hr className="my-2" />
-                        <div className="text-xs space-y-1 px-2">
+                          ))}
+                        </tbody>
+                      </table>
+                      <hr className="my-2" />
+                      <div className="text-xs space-y-1 px-2">
+                        <div className="flex justify-between">
+                          <span>Subtotal</span>
+                          <span>₹{bill.subtotal?.toFixed(2)}</span>
+                        </div>
+
+                        {bill.discount > 0 && (
                           <div className="flex justify-between">
-                            <span>Subtotal</span>
-                            <span>₹{bill.subtotal?.toFixed(2)}</span>
-                          </div>
-
-                          {bill.discount > 0 && (
-                            <div className="flex justify-between">
-                              <span>Discount</span>
-                              <span className="text-red-500">
-                                -₹{bill.discount.toFixed(2)}
-                              </span>
-                            </div>
-                          )}
-
-                        {bill.taxBreakdown.map((tax, idx) => (
-  <div key={idx} className="flex justify-between">
-    <span>{tax.name} ({tax.value}{tax.unit === "PERCENTAGE" ? "%" : "₹"})</span>
-    <span>₹{tax.amount.toFixed(2)}</span>
-  </div>
-))}
-
-
-                          {bill.serviceCharge > 0 && (
-                            <div className="flex justify-between">
-                              <span>Service Charge</span>
-                              <span>₹{bill.serviceCharge.toFixed(2)}</span>
-                            </div>
-                          )}
-
-                          {bill.deliveryFee > 0 && (
-                            <div className="flex justify-between">
-                              <span>Delivery Fee</span>
-                              <span>₹{bill.deliveryFee.toFixed(2)}</span>
-                            </div>
-                          )}
-
-                          {bill.packagingFee > 0 && (
-                            <div className="flex justify-between">
-                              <span>Packaging Fee</span>
-                              <span>₹{bill.packagingFee.toFixed(2)}</span>
-                            </div>
-                          )}
-
-                          {bill.roundOff !== 0 && (
-                            <div className="flex justify-between">
-                              <span>Round Off</span>
-                              <span>
-                                {bill.roundOff > 0
-                                  ? `+₹${bill.roundOff.toFixed(2)}`
-                                  : `-₹${Math.abs(bill.roundOff).toFixed(2)}`}
-                              </span>
-                            </div>
-                          )}
-
-                          <div className="flex justify-between font-semibold text-sm mt-2 pt-2 border-t">
-                            <span>Grand Total</span>
-                            <span>₹{bill.totalAmount.toFixed(2)}</span>
-                          </div>
-                        </div>{" "}
-                        <hr className="my-2" />
-                        <p className="text-xs">Thank you. Visit Again.</p>
-                        {bill.status !== "PAID" && (
-                          <div className="mt-4 flex justify-around">
-                            <Button
-                              variant="outline"
-                              className="text-green-600 border-green-500"
-                            >
-                              💵 CASH
-                            </Button>
-                            <Button
-                              variant="outline"
-                              className="text-blue-600 border-blue-500"
-                            >
-                              💳 UPI / CARD
-                            </Button>
+                            <span>Discount</span>
+                            <span className="text-red-500">
+                              -₹{bill.discount.toFixed(2)}
+                            </span>
                           </div>
                         )}
-                      </div>
-                    </SheetContent>
-                  </Sheet>
-                );
-              })
+
+                        {bill.taxBreakdown.map((tax, idx) => (
+                          <div key={idx} className="flex justify-between">
+                            <span>
+                              {tax.name} ({tax.value}
+                              {tax.unit === "PERCENTAGE" ? "%" : "₹"})
+                            </span>
+                            <span>₹{tax.amount.toFixed(2)}</span>
+                          </div>
+                        ))}
+
+                        {bill.serviceCharge > 0 && (
+                          <div className="flex justify-between">
+                            <span>Service Charge</span>
+                            <span>₹{bill.serviceCharge.toFixed(2)}</span>
+                          </div>
+                        )}
+
+                        {bill.deliveryFee > 0 && (
+                          <div className="flex justify-between">
+                            <span>Delivery Fee</span>
+                            <span>₹{bill.deliveryFee.toFixed(2)}</span>
+                          </div>
+                        )}
+
+                        {bill.packagingFee > 0 && (
+                          <div className="flex justify-between">
+                            <span>Packaging Fee</span>
+                            <span>₹{bill.packagingFee.toFixed(2)}</span>
+                          </div>
+                        )}
+
+                        {bill.roundOff !== 0 && (
+                          <div className="flex justify-between">
+                            <span>Round Off</span>
+                            <span>
+                              {bill.roundOff > 0
+                                ? `+₹${bill.roundOff.toFixed(2)}`
+                                : `-₹${Math.abs(bill.roundOff).toFixed(2)}`}
+                            </span>
+                          </div>
+                        )}
+
+                        <div className="flex justify-between font-semibold text-sm mt-2 pt-2 border-t">
+                          <span>Grand Total</span>
+                          <span>₹{bill.totalAmount.toFixed(2)}</span>
+                        </div>
+                      </div>{" "}
+                      <hr className="my-2" />
+                      <p className="text-xs">Thank you. Visit Again.</p>
+                      {bill.status !== "PAID" && (
+                        <div className="mt-4 flex justify-around">
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <div
+                                className="cursor-pointer"
+                                onClick={() => setPaymentMethod("CASH")}
+                              >
+                                <span className="flex items-center bg-gray-100 rounded-lg gap-2 p-3 hover:bg-gray-200">
+                                  <BsCash size={20} className="text-primary1" />
+                                  <span className=" ">Cash</span>
+                                </span>
+                              </div>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle className="text-primary1">
+                                  Confirm Payment
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to mark this bill as
+                                  paid via <strong>Cash</strong>?
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  className="bg-primary1"
+                                  onClick={handleMarkAsPaid}
+                                  disabled={loading}
+                                >
+                                  {loading ? "Processing..." : "Yes, Pay"}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+
+                          {/* UPI / CARD */}
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <div
+                                className=" cursor-pointer"
+                                onClick={() => setPaymentMethod("UPI")}
+                              >
+                                <span className="flex items-center bg-gray-100 rounded-lg gap-2 p-3 hover:bg-gray-200">
+                                  <FcGoogle size={20} />
+                                  <span className="">UPI / Card</span>
+                                </span>
+                              </div>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle className="text-primary1">
+                                  Confirm Payment
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to mark this bill as
+                                  paid via <strong>UPI / Card</strong>?
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  className="bg-primary1"
+                                  onClick={handleMarkAsPaid}
+                                  disabled={loading}
+                                >
+                                  {loading ? "Processing..." : "Yes, Pay"}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      )}
+                    </div>
+                  </SheetContent>
+                </Sheet>
+              ))
             ) : (
               <TableRow>
                 <TableCell colSpan={7} className="text-center text-gray-500">

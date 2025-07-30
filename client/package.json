@@ -31,6 +31,7 @@
     "date-fns": "^4.1.0",
     "emoji-picker-react": "^4.12.2",
     "framer-motion": "^12.16.0",
+    "jspdf": "^3.0.1",
     "lottie-react": "^2.4.1",
     "lucide-react": "^0.483.0",
     "mitt": "^3.0.1",
