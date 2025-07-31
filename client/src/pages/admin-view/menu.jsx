@@ -32,6 +32,7 @@ import {
 import { toast } from "react-hot-toast";
 import { Emoji } from "emoji-picker-react";
 import EmojiPickerPopup from "@/components/admin-view/menu/EmojiPicker";
+import { Search } from "lucide-react";
 
 const initialformData = {
   imageURL: null,
@@ -150,7 +151,7 @@ const AdminMenu = () => {
   const handlechange = (field, value) => {
     setformData((prev) => ({ ...prev, [field]: value }));
   };
-   const fixImageURL = (url) => {
+  const fixImageURL = (url) => {
     // If it's already a full URL but has localhost, replace with actual IP
     if (url?.startsWith("http://localhost")) {
       return url.replace("http://localhost:8000", import.meta.env.VITE_API_URL);
@@ -198,6 +199,8 @@ const AdminMenu = () => {
     });
   };
 
+  const [searchQuery, setSearchQuery] = useState("");
+
   const filteredMenuItem = Array.isArray(menuItem)
     ? menuItem.filter((item) => {
         const categoryMatch = selectedCategory
@@ -210,7 +213,22 @@ const AdminMenu = () => {
             selectedSubCategory
           : true;
 
-        return categoryMatch && subCatMatch;
+        const searchMatch = searchQuery
+          ? item.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            item.description
+              ?.toLowerCase()
+              .includes(searchQuery.toLowerCase()) ||
+            menucategoris
+              .find((c) => c._id === item.category)
+              ?.name?.toLowerCase()
+              ?.includes(searchQuery.toLowerCase()) ||
+            subcats
+              .find((s) => s._id === item.subcategory)
+              ?.name?.toLowerCase()
+              ?.includes(searchQuery.toLowerCase())
+          : true;
+
+        return categoryMatch && subCatMatch && searchMatch;
       })
     : [];
 
@@ -241,6 +259,17 @@ const AdminMenu = () => {
 
         {/* Filters */}
         <div className="flex flex-col bg-white rounded-2xl p-3 gap-2 mt-10">
+          {/* Search Bar */}
+          <div className="mb-4 py-2 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input
+              type="text"
+              placeholder="Search menu items..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value.trimStart())}
+              className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary1"
+            />
+          </div>
           <div className="w-full overflow-x-auto max-w-[360px] sm:max-w-full">
             <h2 className="font-semibold text-md mb-3">Categories</h2>
             <div className="flex gap-3 px-2 pb-2 w-max">
@@ -330,7 +359,7 @@ const AdminMenu = () => {
                   key={item._id}
                   className="bg-white shadow rounded-xl h-[280px] overflow-hidden relative"
                 >
-                   <img
+                  <img
                     onClick={() => handleItemClick(item)}
                     src={fixImageURL(item.imageURL)}
                     alt={item.title || "Item"}
