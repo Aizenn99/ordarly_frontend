@@ -17,7 +17,6 @@ import AdminMenu from "./pages/admin-view/menu";
 import AdminTableQR from "./pages/admin-view/table-qr";
 import AdminBills from "./pages/admin-view/bills";
 import AdminSettings from "./pages/admin-view/settings";
-import AdminReports from "./pages/admin-view/reports";
 import AdminUpdate from "./pages/admin-view/update-help";
 import AdminUser from "./pages/admin-view/user-access";
 
@@ -137,7 +136,6 @@ function App() {
           <Route path="table-qr" element={<AdminTableQR />} />
           <Route path="bills" element={<AdminBills />} />
           <Route path="settings" element={<AdminSettings />} />
-          <Route path="reports" element={<AdminReports />} />
           <Route path="update-help" element={<AdminUpdate />} />
           <Route path="user-access" element={<AdminUser />} />
         </Route>
