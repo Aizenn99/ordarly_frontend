@@ -1,3 +1,19 @@
+"use client";
+
+import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  addSpaces,
+  addTable,
+  deleteTable,
+  fetchSpaces,
+  getTable,
+  updateTable,
+} from "@/store/admin-slice/table";
+import { toast } from "react-hot-toast";
+import { MdDeleteOutline } from "react-icons/md";
+import { FaChevronUp, FaChevronDown } from "react-icons/fa";
+
 import CommonForm from "@/components/common/form";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,22 +27,21 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { addSpacesFormControls, addTableFormControls } from "@/config";
-import { FaChevronUp, FaChevronDown } from "react-icons/fa";
-import React, { useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
 import {
-  addSpaces,
-  addTable,
-  fetchSpaces,
-  getTable,
-  updateTable,
-} from "@/store/admin-slice/table";
-import { toast } from "react-hot-toast";
-import { MdDeleteOutline } from "react-icons/md";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+
+import {
+  addSpacesFormControls,
+  addTableFormControls,
+} from "@/config";
 
 const initialformData = {
-  name: "",
+  tableName: "",
   capacity: "",
   status: "",
   spaces: "",
@@ -40,12 +55,14 @@ const AdminTableQR = () => {
   const [openaddTable, setOpenAddTable] = useState(false);
   const [openaddSpaces, setOpenAddSpaces] = useState(false);
   const [currentEditedId, setCurrentEditedId] = useState(null);
-  const dispatch = useDispatch();
-
-  const { tables, spaces } = useSelector((state) => state.adminTable);
+  const [selectedTable, setSelectedTable] = useState(null);
+  const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState(initialformData);
   const [spaceFormData, setSpaceFormData] = useState(initialSpaceFormData);
   const [collapseStates, setCollapseStates] = useState({});
+
+  const dispatch = useDispatch();
+  const { tables, spaces } = useSelector((state) => state.adminTable);
 
   useEffect(() => {
     dispatch(getTable());
@@ -53,25 +70,34 @@ const AdminTableQR = () => {
   }, [dispatch]);
 
   function onSubmit(e) {
-    e.preventDefault();
+    e?.preventDefault?.();
+
     if (currentEditedId) {
       dispatch(updateTable({ id: currentEditedId, formData })).then((res) => {
         if (res.payload.success) {
           toast.success("Table Updated Successfully");
           setOpenAddTable(false);
           setFormData(initialformData);
+          setCurrentEditedId(null);
+
+          // ✅ Refresh updated table list
+          dispatch(getTable());
         }
       });
     } else {
       dispatch(addTable(formData)).then((res) => {
         if (res.payload.success) {
-          setFormData(initialformData);
           toast.success("Table Added Successfully");
+          setFormData(initialformData);
           setOpenAddTable(false);
+
+          // ✅ Refresh after add
+          dispatch(getTable());
         }
       });
     }
   }
+
 
   function onAddSpaceSubmit(e) {
     e.preventDefault();
@@ -87,7 +113,6 @@ const AdminTableQR = () => {
     });
   }
 
-  // Create a modified version of addTableFormControls with dynamic spaces options
   const dynamicTableFormControls = addTableFormControls.map((control) => {
     if (control.name === "spaces") {
       return {
@@ -106,15 +131,9 @@ const AdminTableQR = () => {
     return control?.options?.find((opt) => opt.id === id)?.label || id;
   };
 
-  const toggleCollapse = (spaceId) => {
-    setCollapseStates((prev) => ({
-      ...prev,
-      [spaceId]: !prev[spaceId],
-    }));
-  };
-
   return (
     <div>
+      {/* Header */}
       <div className="flex items-center justify-between p-3 md:p-4">
         <h1 className="text-xl font-semibold">Manage Table</h1>
         <div className="flex gap-2 items-center">
@@ -122,19 +141,25 @@ const AdminTableQR = () => {
           <Sheet open={openaddTable} onOpenChange={setOpenAddTable}>
             <Button
               className="bg-primary1 hover:bg-primary1 rounded-lg"
-              onClick={() => setOpenAddTable(true)}
+              onClick={() => {
+                setFormData(initialformData);
+                setCurrentEditedId(null);
+                setOpenAddTable(true);
+              }}
             >
               Add Table
             </Button>
             <SheetContent className="w-96 overflow-y-scroll" side="right">
               <SheetHeader className="border-b">
-                <SheetTitle className="font-semibold">Add Table</SheetTitle>
+                <SheetTitle className="font-semibold">
+                  {currentEditedId ? "Edit Table" : "Add Table"}
+                </SheetTitle>
               </SheetHeader>
               <div className="flex flex-col gap-4 p-4">
                 <CommonForm
                   formData={formData}
                   setformData={setFormData}
-                  buttonText="Add"
+                  buttonText={currentEditedId ? "Update" : "Add"}
                   formControls={dynamicTableFormControls}
                   onSubmit={onSubmit}
                 />
@@ -142,7 +167,7 @@ const AdminTableQR = () => {
             </SheetContent>
           </Sheet>
 
-          {/* Add Space */}
+          {/* Add Spaces */}
           <Sheet open={openaddSpaces} onOpenChange={setOpenAddSpaces}>
             <Button
               className="bg-primary1 hover:bg-primary1 rounded-lg"
@@ -156,7 +181,7 @@ const AdminTableQR = () => {
               </SheetHeader>
               <div className="flex flex-col gap-4 p-4">
                 <div className="overflow-y-auto max-h-100 mb-10">
-                  {spaces && spaces.length > 0 ? (
+                  {spaces?.length > 0 ? (
                     spaces.map((space) => (
                       <div
                         key={space._id}
@@ -170,7 +195,6 @@ const AdminTableQR = () => {
                     <p>No spaces available.</p>
                   )}
                 </div>
-
                 <CommonForm
                   formData={spaceFormData}
                   setformData={setSpaceFormData}
@@ -184,15 +208,13 @@ const AdminTableQR = () => {
         </div>
       </div>
 
-      {/* Spaces + Tables */}
+      {/* Table Cards by Space */}
       <div className="p-3 md:p-4 mt-4">
-        {spaces && spaces.length > 0 ? (
+        {spaces?.length > 0 ? (
           spaces.map((space) => {
             const tablesForSpace = tables.filter(
               (table) => table.spaces === space._id
             );
-            const isOpen = collapseStates[space._id] || false;
-
             return (
               <Collapsible
                 key={space._id}
@@ -206,7 +228,7 @@ const AdminTableQR = () => {
                 className="mb-4"
               >
                 <CollapsibleTrigger asChild>
-                  <div className="flex items-center justify-between mb-3 gap-2 cursor-pointer   rounded-md">
+                  <div className="flex items-center justify-between mb-3 gap-2 cursor-pointer rounded-md">
                     <h1 className="flex items-center gap-2 text-primary1 font-semibold">
                       {space.SpaceName}
                     </h1>
@@ -217,16 +239,11 @@ const AdminTableQR = () => {
                     )}
                   </div>
                 </CollapsibleTrigger>
-
                 <CollapsibleContent>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
                     {tablesForSpace.length > 0 ? (
                       tablesForSpace.map((table, index) => {
-                        const statusLabel = getOptionLabel(
-                          "status",
-                          table.status
-                        );
-
+                        const statusLabel = getOptionLabel("status", table.status);
                         const cardColor =
                           statusLabel === "available"
                             ? "bg-green-200 border-primary1"
@@ -239,7 +256,11 @@ const AdminTableQR = () => {
                         return (
                           <div
                             key={index}
-                            className={`card w-full p-3 rounded shadow border ${cardColor}`}
+                            className={`card w-full p-3 rounded shadow border cursor-pointer ${cardColor}`}
+                            onClick={() => {
+                              setSelectedTable(table);
+                              setShowModal(true);
+                            }}
                           >
                             <h2 className="font-semibold text-lg text-center mb-2">
                               {table.tableName}
@@ -267,6 +288,60 @@ const AdminTableQR = () => {
           <p className="text-muted-foreground">No spaces found.</p>
         )}
       </div>
+
+      {/* Dialog for Table Action */}
+        <Dialog open={showModal} onOpenChange={setShowModal}>
+          <DialogContent className="sm:max-w-[400px] flex flex-col justify-between">
+            <DialogHeader>
+              <DialogTitle className="text-center">
+                {selectedTable?.tableName}
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-3 text-center">
+              <p className="text-sm">Capacity: {selectedTable?.capacity}</p>
+              <p className="text-sm">Status: {selectedTable?.status}</p>
+            </div>
+
+            <DialogFooter className="mt-6">
+              <div className="flex justify-center w-full gap-4">
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="w-24 h-12 rounded-xl"
+                  onClick={() => {
+                    dispatch(deleteTable(selectedTable._id)).then((res) => {
+                      if (res.payload.success) {
+                        toast.success("Table deleted");
+                        setShowModal(false);
+                        dispatch(getTable());
+                      }
+                    });
+                  }}
+                >
+                  Delete
+                </Button>
+                <Button
+                  className="bg-gray-300 hover:bg-gray-400 text-black w-24 h-12 rounded-xl"
+                  onClick={() => {
+                    setFormData({
+                      tableName: selectedTable.tableName,
+                      capacity: selectedTable.capacity,
+                      status: selectedTable.status,
+                      spaces: selectedTable.spaces,
+                    });
+                    setCurrentEditedId(selectedTable._id);
+                    setOpenAddTable(true);
+                    setShowModal(false);
+                  }}
+                >
+                  Edit
+                </Button>
+              </div>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
     </div>
   );
 };
