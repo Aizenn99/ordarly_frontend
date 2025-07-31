@@ -32,7 +32,8 @@ import {
 import { toast } from "react-hot-toast";
 import { Emoji } from "emoji-picker-react";
 import EmojiPickerPopup from "@/components/admin-view/menu/EmojiPicker";
-import { Search } from "lucide-react";
+import { IoSearchSharp } from "react-icons/io5";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const initialformData = {
   imageURL: null,
@@ -232,6 +233,26 @@ const AdminMenu = () => {
       })
     : [];
 
+  const MenuImage = ({ src, alt }) => {
+    const [loading, setLoading] = useState(true);
+
+    return (
+      <div className="relative w-full h-36">
+        {loading && (
+          <Skeleton className="absolute inset-0 w-full h-full rounded-t-xl" />
+        )}
+        <img
+          src={src}
+          alt={alt}
+          onLoad={() => setLoading(false)}
+          className={`w-full h-36 object-cover rounded-t-xl transition-opacity duration-500 ${
+            loading ? "opacity-0" : "opacity-100"
+          }`}
+        />
+      </div>
+    );
+  };
+
   return (
     <>
       <div className="h-full bg-[#E3F4F4] rounded-2xl p-3">
@@ -260,8 +281,8 @@ const AdminMenu = () => {
         {/* Filters */}
         <div className="flex flex-col bg-white rounded-2xl p-3 gap-2 mt-10">
           {/* Search Bar */}
-          <div className="mb-4 py-2 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <div className=" py-2 relative">
+            <IoSearchSharp className="absolute left-3 top-1/2 -translate-y-1/2 text-primary1 w-5 h-5" />
             <input
               type="text"
               placeholder="Search menu items..."
@@ -359,11 +380,9 @@ const AdminMenu = () => {
                   key={item._id}
                   className="bg-white shadow rounded-xl h-[280px] overflow-hidden relative"
                 >
-                  <img
-                    onClick={() => handleItemClick(item)}
+                  <MenuImage
                     src={fixImageURL(item.imageURL)}
                     alt={item.title || "Item"}
-                    className="w-full h-36 object-cover rounded-t-xl"
                   />
                   <div className="p-3">
                     <h3 className="font-semibold text-md text-gray-800 mb-1">

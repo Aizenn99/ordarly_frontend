@@ -18,7 +18,7 @@ export default function AdminUpdate() {
             <p className="text-sm text-gray-500 mb-4">
               Last updated on 28 March 2025
             </p>
-            <div className="bg-gray-200 p-4 sm:p-6 rounded-lg text-left text-sm sm:text-base font-semibold space-y-2">
+            <div className="bg-gray-200 p-4 tracking-tight sm:p-6 rounded-lg text-left text-sm sm:text-base font-semibold space-y-2">
               <p>1. Improved performance and speed</p>
               <p>2. New user interface design</p>
               <p>3. Added new features and functionalities</p>
@@ -31,14 +31,14 @@ export default function AdminUpdate() {
           </div>
 
           {/* Help Section */}
-          <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
+          <div className="bg-white rounded-xl tracking-normal shadow-md p-4 sm:p-6">
             <h2 className="text-xl sm:text-2xl font-bold text-green-800 mb-4">
               Help
             </h2>
-            <p className="text-base sm:text-lg font-semibold">
+            <p className="text-base sm:text-lg mb-6 font-semibold">
               For any technical error
             </p>
-            <div className="mt-4 space-y-3 text-sm sm:text-base">
+            <div className="mt-4 space-y-3 text-sm  p-4 rounded-lg sm:text-base">
               <p className="font-semibold">
                 <span className="font-semibold">Customer Care:</span> +91 9876543210
               </p>

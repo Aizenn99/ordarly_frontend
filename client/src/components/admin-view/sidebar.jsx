@@ -51,12 +51,6 @@ const AdminSideBarMenuItems = [
     icon: <FileText size={18} />,
   },
   {
-    id: "reports",
-    label: "Reports",
-    path: "/admin/reports",
-    icon: <TbReportSearch size={18} />,
-  },
-  {
     id: "settings",
     label: "Settings",
     path: "/admin/settings",
