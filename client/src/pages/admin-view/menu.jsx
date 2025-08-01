@@ -391,7 +391,7 @@ const AdminMenu = () => {
                     <p className="text-xs text-gray-500 mb-2">
                       {item.description}
                     </p>
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between mt-2 items-center">
                       <span className="font-semibold text-sm text-black">
                         ₹ {item.price}
                       </span>
