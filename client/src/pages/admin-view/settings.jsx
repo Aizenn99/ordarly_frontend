@@ -130,7 +130,14 @@ const AdminSettings = () => {
             key={item._id}
             className="flex items-center justify-between border-b px-2 mb-2 py-1"
           >
-            <span className="text-sm">{item.name || item.type}</span>
+            <span className="text-sm">
+              {item.name || item.type} | {item.value}
+              {item.unit === "PERCENTAGE"
+                ? "%"
+                : item.unit === "AMOUNT"
+                ? "₹"
+                : ""}
+            </span>
             <MdDeleteOutline
               onClick={() => dispatch(deleteSetting(item._id))}
               className="text-red-500 cursor-pointer hover:text-red-700"

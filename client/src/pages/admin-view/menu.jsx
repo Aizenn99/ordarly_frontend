@@ -378,7 +378,7 @@ const AdminMenu = () => {
               {filteredMenuItem.map((item) => (
                 <div
                   key={item._id}
-                  className="bg-white shadow rounded-xl h-[280px] overflow-hidden relative"
+                  className="bg-white w-[265px] scrollbar-hide shadow rounded-xl h-[280px] overflow-y-scroll relative"
                 >
                   <MenuImage
                     src={fixImageURL(item.imageURL)}
@@ -388,7 +388,7 @@ const AdminMenu = () => {
                     <h3 className="font-semibold text-md text-gray-800 mb-1">
                       {item.title}
                     </h3>
-                    <p className="text-sm text-gray-500 mb-2">
+                    <p className="text-xs text-gray-500 mb-2">
                       {item.description}
                     </p>
                     <div className="flex justify-between items-center">
