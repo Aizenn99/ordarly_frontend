@@ -391,16 +391,38 @@ const AdminMenu = () => {
             <p className="text-xs text-gray-500 mb-2 line-clamp-2">
               {item.description}
             </p>
-            <div className="flex justify-between items-center">
-              <span className="font-semibold text-sm text-black">
-                ₹ {item.price}
-              </span>
-              <button
-                className="text-white bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-sm"
-                onClick={() => handledelete(item._id)}
-              >
-                Delete
-              </button>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
+              {filteredMenuItem.map((item) => (
+                <div
+                  key={item._id}
+                  className="bg-white w-[265px] scrollbar-hide shadow rounded-xl h-[280px] overflow-y-scroll relative"
+                >
+                  <MenuImage
+                    src={fixImageURL(item.imageURL)}
+                    alt={item.title || "Item"}
+                  />
+                  <div className="p-3">
+                    <h3 className="font-semibold text-md text-gray-800 mb-1">
+                      {item.title}
+                    </h3>
+                    <p className="text-xs text-gray-500 mb-2">
+                      {item.description}
+                    </p>
+                    <div className="flex justify-between mt-2 items-center">
+                      <span className="font-semibold text-sm text-black">
+                        ₹ {item.price}
+                      </span>
+                      <button
+                        className="text-white bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-sm"
+                        onClick={() => handledelete(item._id)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
