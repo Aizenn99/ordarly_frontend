@@ -238,8 +238,8 @@ export const receiptSettingstFormControls = [
     placeholder: "Enter receipt header",
   },
   {
-    label: "Bussiness Number",
-    name: "bussinessNumber",
+    label: "Business Number",
+    name: "businessNumber",
     componentType: "input",
     type: "text",
     placeholder: "Enter business number",
