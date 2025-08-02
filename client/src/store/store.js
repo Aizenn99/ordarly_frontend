@@ -7,6 +7,7 @@ import StaffBillSlice from "./staff-slice/Bill";
 import kitchenOrderSlice from "./kitchen-slice/order-slice"
 import dashboardSlice from "./dashboard-slice/report-slice"
 import settingSlice from "./admin-slice/settings";
+import receiptSlice from "./admin-slice/receipt-slice";
 
 const store = configureStore({
   reducer: {
@@ -18,6 +19,7 @@ const store = configureStore({
     kitchenOrder : kitchenOrderSlice,
     dashboard: dashboardSlice,
     adminSettings: settingSlice,
+    receiptSettings: receiptSlice,
   },
 });
 

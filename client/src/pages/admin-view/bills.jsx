@@ -34,7 +34,7 @@ import { BsCash, BsFillUsbDriveFill } from "react-icons/bs";
 import { FaUsb, FaWhatsapp } from "react-icons/fa";
 import { TiPrinter } from "react-icons/ti";
 import { jsPDF } from "jspdf"; // ✅ PDF generator
-
+import { fetchReceiptSettings } from "@/store/admin-slice/receipt-slice";
 
 const socket = io(`${import.meta.env.VITE_API_URL}`);
 
@@ -45,8 +45,7 @@ const AdminBills = () => {
   const [filteredBills, setFilteredBills] = useState([]);
   const [selectedBill, setSelectedBill] = useState(null);
   const [sheetOpen, setSheetOpen] = useState(false);
-    const [phoneNumber, setPhoneNumber] = useState(""); // ✅ input phone number
-
+  const [phoneNumber, setPhoneNumber] = useState(""); // ✅ input phone number
 
   const [dateFilter, setDateFilter] = useState(
     localStorage.getItem("billDateFilter") || "today"
@@ -56,6 +55,17 @@ const AdminBills = () => {
     const storedRange = localStorage.getItem("billCustomRange");
     return storedRange ? JSON.parse(storedRange) : { from: null, to: null };
   });
+
+  const { data, isLoading, error } = useSelector(
+    (state) => state.receiptSettings
+  );
+
+  useEffect(() => {
+    dispatch(fetchReceiptSettings());
+  }, [dispatch]);
+
+    const { header, address, businessNumber,footer } = data;
+
 
   useEffect(() => {
     dispatch(getAllBillsAdmin());
@@ -103,7 +113,7 @@ const AdminBills = () => {
       });
   };
 
-   const handleSendWhatsApp = async () => {
+  const handleSendWhatsApp = async () => {
     if (!selectedBill) {
       toast.error("No bill selected");
       return;
@@ -123,7 +133,9 @@ const AdminBills = () => {
       doc.text(`Table: ${selectedBill.tableName || "-"}`, 10, 26);
       doc.text(`Guests: ${selectedBill.guestCount || "-"}`, 10, 32);
       doc.text(
-        `Date: ${new Date(selectedBill.createdAt).toLocaleDateString()} ${new Date(
+        `Date: ${new Date(
+          selectedBill.createdAt
+        ).toLocaleDateString()} ${new Date(
           selectedBill.createdAt
         ).toLocaleTimeString()}`,
         10,
@@ -132,12 +144,20 @@ const AdminBills = () => {
 
       let y = 50;
       selectedBill.items.forEach((item) => {
-        doc.text(`${item.itemName} x${item.quantity} - ₹${item.totalPrice}`, 10, y);
+        doc.text(
+          `${item.itemName} x${item.quantity} - ₹${item.totalPrice}`,
+          10,
+          y
+        );
         y += 8;
       });
 
       y += 6;
-      doc.text(`Subtotal: ₹${selectedBill.subtotal?.toFixed(2) || "0.00"}`, 10, y);
+      doc.text(
+        `Subtotal: ₹${selectedBill.subtotal?.toFixed(2) || "0.00"}`,
+        10,
+        y
+      );
       y += 8;
       doc.text(`Grand Total: ₹${selectedBill.totalAmount.toFixed(2)}`, 10, y);
 
@@ -160,7 +180,6 @@ const AdminBills = () => {
       toast.error("Error generating PDF ❌");
     }
   };
-
 
   // Browser thermal print with all details (aligned like screenshot)
 
@@ -214,13 +233,13 @@ const AdminBills = () => {
   }, [bills, dateFilter, customRange]);
 
   const handleThermalBrowserPrint = () => {
-  if (!selectedBill) {
-    toast.error("No bill selected");
-    return;
-  }
+    if (!selectedBill) {
+      toast.error("No bill selected");
+      return;
+    }
 
-  const printWindow = window.open("", "_blank");
-  const billHtml = `
+    const printWindow = window.open("", "_blank");
+    const billHtml = `
     <html>
       <head>
         <title>Bill #${selectedBill.billNumber}</title>
@@ -257,9 +276,9 @@ const AdminBills = () => {
         </style>
       </head>
       <body>
-        <h2>ORDARLY</h2>
-        <p>Sanjay Ghodawat University</p>
-        <p>23SCIA50014</p>
+        <h2>${header || "ORDARLY"}</h2>
+        <p>${address || "123 Main Street, City, State, ZIP"}</p>
+        <p>${businessNumber || "123-456-7890"}</p>
         <p>www.ordarly.com</p>
         <p>+91 8459278930</p>
         <hr/>
@@ -269,8 +288,12 @@ const AdminBills = () => {
             <p>Table: ${selectedBill.tableName || "-"}</p>
           </div>
           <div style="text-align:right;">
-            <p>Date: ${new Date(selectedBill.createdAt).toLocaleDateString()}</p>
-            <p>Time: ${new Date(selectedBill.createdAt).toLocaleTimeString()}</p>
+            <p>Date: ${new Date(
+              selectedBill.createdAt
+            ).toLocaleDateString()}</p>
+            <p>Time: ${new Date(
+              selectedBill.createdAt
+            ).toLocaleTimeString()}</p>
           </div>
         </div>
         <hr/>
@@ -299,40 +322,52 @@ const AdminBills = () => {
         </table>
         <hr/>
         <div class="totals">
-          <div><span>Subtotal</span><span>₹${selectedBill.subtotal?.toFixed(2) || "0.00"}</span></div>
+          <div><span>Subtotal</span><span>₹${
+            selectedBill.subtotal?.toFixed(2) || "0.00"
+          }</span></div>
           ${
             selectedBill.discount > 0
-              ? `<div><span>Discount</span><span class="neg">-₹${selectedBill.discount.toFixed(2)}</span></div>`
+              ? `<div><span>Discount</span><span class="neg">-₹${selectedBill.discount.toFixed(
+                  2
+                )}</span></div>`
               : ""
           }
           ${selectedBill.taxBreakdown
             .map(
               (tax) => `
-            <div><span>${tax.name} (${tax.value}${tax.unit === "PERCENTAGE" ? "%" : "₹"})</span>
+            <div><span>${tax.name} (${tax.value}${
+                tax.unit === "PERCENTAGE" ? "%" : "₹"
+              })</span>
             <span>₹${tax.amount.toFixed(2)}</span></div>
           `
             )
             .join("")}
           ${
             selectedBill.serviceCharge > 0
-              ? `<div><span>Service Charge</span><span>₹${selectedBill.serviceCharge.toFixed(2)}</span></div>`
+              ? `<div><span>Service Charge</span><span>₹${selectedBill.serviceCharge.toFixed(
+                  2
+                )}</span></div>`
               : ""
           }
           ${
             selectedBill.deliveryFee > 0
-              ? `<div><span>Delivery Fee</span><span>₹${selectedBill.deliveryFee.toFixed(2)}</span></div>`
+              ? `<div><span>Delivery Fee</span><span>₹${selectedBill.deliveryFee.toFixed(
+                  2
+                )}</span></div>`
               : ""
           }
           ${
             selectedBill.packagingFee > 0
-              ? `<div><span>Packaging Fee</span><span>₹${selectedBill.packagingFee.toFixed(2)}</span></div>`
+              ? `<div><span>Packaging Fee</span><span>₹${selectedBill.packagingFee.toFixed(
+                  2
+                )}</span></div>`
               : ""
           }
           ${
             selectedBill.roundOff !== 0
-              ? `<div><span>Round Off</span><span>${selectedBill.roundOff > 0 ? "+" : "-"}₹${Math.abs(
-                  selectedBill.roundOff
-                ).toFixed(2)}</span></div>`
+              ? `<div><span>Round Off</span><span>${
+                  selectedBill.roundOff > 0 ? "+" : "-"
+                }₹${Math.abs(selectedBill.roundOff).toFixed(2)}</span></div>`
               : ""
           }
         </div>
@@ -341,17 +376,15 @@ const AdminBills = () => {
           <span>₹${selectedBill.totalAmount.toFixed(2)}</span>
         </div>
         <hr/>
-        <p>Thank you. Visit Again.</p>
+        <p>${footer || "Thank you,Visit again!"}</p>
       </body>
     </html>
   `;
-  printWindow.document.write(billHtml);
-  printWindow.document.close();
-  printWindow.focus();
-  printWindow.print();
-};
-
-
+    printWindow.document.write(billHtml);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+  };
 
   // Direct ESC/POS via backend
   const handleDirectPrint = async () => {
@@ -375,7 +408,6 @@ const AdminBills = () => {
     }
   };
 
-
   useEffect(() => {
     localStorage.setItem("billDateFilter", dateFilter);
   }, [dateFilter]);
@@ -386,7 +418,7 @@ const AdminBills = () => {
 
   return (
     <div className="p-2 space-y-4">
-     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
           <div className="hidden sm:flex flex-wrap gap-2">
             {["today", "yesterday", "last 7 Days", "last 30 Days"].map(
@@ -416,12 +448,7 @@ const AdminBills = () => {
         </div>
 
         <div className="flex items-center justify-between gap-2">
-          <Button
-            className="bg-yellow-600 text-white"
-            
-          >
-            Generate Excel
-          </Button>
+          <Button className="bg-yellow-600 text-white">Generate Excel</Button>
           <div className="sm:hidden">
             <Sheet>
               <SheetTrigger asChild>
@@ -525,7 +552,7 @@ const AdminBills = () => {
 
                     {/* Print + Share */}
                     <div className="flex justify-around items-center gap-4 my-3">
-                    {/* <input
+                      {/* <input
                         type="text"
                         className="border p-2 rounded"
                         placeholder="Enter customer phone number"
@@ -533,38 +560,47 @@ const AdminBills = () => {
                         onChange={(e) => setPhoneNumber(e.target.value)}
                       /> */}
 
-                      <Button  onClick={handleSendWhatsApp} className="w-20 h-10 rounded-lg cursor-pointer " > 
-                      <FaWhatsapp
-                        size={24}
-                        className=" cursor-pointer"
-                       
-                        title="WhatsApp"
-                      />
+                      <Button
+                        onClick={handleSendWhatsApp}
+                        className="w-20 h-10 rounded-lg cursor-pointer "
+                      >
+                        <FaWhatsapp
+                          size={24}
+                          className=" cursor-pointer"
+                          title="WhatsApp"
+                        />
                       </Button>
-                      <Button   onClick={handleThermalBrowserPrint} className="w-20 h-10 rounded-lg  cursor-pointer " >
-                      <TiPrinter
-                        size={24}
-                        className=" cursor-pointer"
-                       
-                        title="Browser Print"
-                      />
+                      <Button
+                        onClick={handleThermalBrowserPrint}
+                        className="w-20 h-10 rounded-lg  cursor-pointer "
+                      >
+                        <TiPrinter
+                          size={24}
+                          className=" cursor-pointer"
+                          title="Browser Print"
+                        />
                       </Button>
 
-                      <Button  onClick={handleDirectPrint} className="w-20 h-10 rounded-lg cursor-pointer" >
-                      <FaUsb
-                        size={24}
-                        className=" cursor-pointer"
-                       
-                        title="Direct Thermal Print"
-                      />
+                      <Button
+                        onClick={handleDirectPrint}
+                        className="w-20 h-10 rounded-lg cursor-pointer"
+                      >
+                        <FaUsb
+                          size={24}
+                          className=" cursor-pointer"
+                          title="Direct Thermal Print"
+                        />
                       </Button>
                     </div>
                     <div className="text-center text-sm px-4">
-                      <h2 className="text-xl font-bold">ORDARLY</h2>
-                      <p>Sanjay Ghodawat University</p>
-                      <p>23SCIA50014</p>
+                      <h2 className="text-xl font-bold">
+                        {header || "Your Shop Name"}
+                      </h2>
+                      <p>{address || "123 Main St, Your City"}</p>
+                      <p>{businessNumber || "GSTIN0000XXXX"}</p>
                       <p>www.ordarly.com</p>
                       <p>+91 8459278930</p>
+                      
                       <hr className="my-2" />
                       <div className="flex justify-between text-left text-xs">
                         <div>
@@ -669,7 +705,7 @@ const AdminBills = () => {
                         </div>
                       </div>{" "}
                       <hr className="my-2" />
-                      <p className="text-xs">Thank you. Visit Again.</p>
+                      <p className="text-xs">{footer || "Thanks for visiting!"}</p>
                       {bill.status !== "PAID" && (
                         <div className="mt-4 flex justify-around">
                           <AlertDialog>

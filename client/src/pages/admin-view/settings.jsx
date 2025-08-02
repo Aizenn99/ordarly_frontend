@@ -1,3 +1,4 @@
+// src/components/AdminSettings.jsx
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -25,26 +26,32 @@ import {
   deleteSetting,
   fetchSettings,
 } from "@/store/admin-slice/settings";
+
 import { MdDeleteOutline } from "react-icons/md";
+import { deleteReceiptField, fetchReceiptSettings, updateReceiptSettings } from "@/store/admin-slice/receipt-slice";
 
 // ✅ Initial Form States
 const initialTaxFormData = { taxPercentage: "", taxName: "" };
 const initialDeliveryFormData = { deliveryCharge: "", deliveryZones: "" };
-const initialDiscountFormData = { discountName: "", discountPercentage: "" };
+const initialDiscountFormData = {
+  discountName: "",
+  discountPercentage: "",
+};
 const initialPackageFormData = { packageName: "", packagePrice: "" };
 const initialServiceFormData = { serviceName: "", servicePrice: "" };
 const initialReceiptFormData = {
   receiptHeader: "",
-  bussinessNumber: "",
-  receiptFooter: "",
+  businessNumber: "",
   receiptAddress: "",
+  receiptFooter: "",
 };
 
-const AdminSettings = () => {
+export default function AdminSettings() {
   const dispatch = useDispatch();
   const [selectedSetting, setSelectedSetting] = useState(null);
   const [open, setOpen] = useState(false);
 
+  // form states
   const [taxFormData, setTaxFormData] = useState(initialTaxFormData);
   const [deliveryData, setDeliveryData] = useState(initialDeliveryFormData);
   const [discountData, setDiscountData] = useState(initialDiscountFormData);
@@ -52,76 +59,123 @@ const AdminSettings = () => {
   const [serviceData, setServiceData] = useState(initialServiceFormData);
   const [receiptData, setReceiptData] = useState(initialReceiptFormData);
 
+  // existing array-based settings
   const {
     TAX = [],
     DELIVERY = [],
     DISCOUNT = [],
     PACKAGE = [],
     SERVICE_CHARGE = [],
-    RECEIPT = [],
   } = useSelector((state) => state.adminSettings);
 
-  const handleSubmit = async (type, data, resetFunc, e) => {
-    try {
-      e.preventDefault();
+  // singleton receipt settings
+  const {
+    data: receipt,
+    isLoading: isReceiptLoading,
+    error: receiptError,
+  } = useSelector((state) => state.receiptSettings);
 
-      let mappedData = { type: type.toUpperCase() };
-
-      switch (type) {
-        case "tax":
-          mappedData.name = data.taxName;
-          mappedData.value = Number(data.taxPercentage);
-          mappedData.unit = "PERCENTAGE";
-          break;
-        case "delivery":
-          mappedData.name = "Delivery Zones";
-          mappedData.value = Number(data.deliveryCharge);
-          mappedData.unit = "AMOUNT";
-          break;
-        case "discount":
-          mappedData.name = data.discountName;
-          mappedData.value = Number(data.discountPercentage);
-          mappedData.unit = "PERCENTAGE";
-          break;
-        case "package":
-          mappedData.name = data.packageName;
-          mappedData.value = Number(data.packagePrice);
-          mappedData.unit = "AMOUNT";
-          break;
-        case "service":
-          mappedData.type = "SERVICE_CHARGE"; // 👈 force correct backend expected type
-          mappedData.name = data.serviceName;
-          mappedData.value = Number(data.servicePrice);
-          mappedData.unit = "PERCENTAGE";
-          break;
-        case "receipt":
-          mappedData.name = "Receipt Template";
-          mappedData.value = data;
-          mappedData.unit = "TEMPLATE";
-          break;
-        default:
-          break;
-      }
-
-      await dispatch(addSetting(mappedData)).unwrap();
-      toast.success(`${type.toUpperCase()} setting added successfully`);
-      resetFunc();
-      setOpen(false);
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to add setting");
-    }
-  };
-
+  // fetch all on mount
   useEffect(() => {
     dispatch(fetchSettings("TAX"));
     dispatch(fetchSettings("DELIVERY"));
     dispatch(fetchSettings("DISCOUNT"));
     dispatch(fetchSettings("PACKAGE"));
     dispatch(fetchSettings("SERVICE_CHARGE"));
-    dispatch(fetchSettings("RECEIPT"));
+    dispatch(fetchReceiptSettings());
   }, [dispatch]);
 
+  // seed receipt form when data arrives
+  useEffect(() => {
+    if (receipt) {
+      setReceiptData({
+        receiptHeader: receipt.header,
+        businessNumber: receipt.businessNumber,
+        receiptAddress: receipt.address,
+        receiptFooter: receipt.footer,
+      });
+    }
+  }, [receipt]);
+
+  // ────────────────────────────────────────
+  // old addSetting handler (for TAX, DELIVERY, etc.)
+  // ────────────────────────────────────────
+  const handleSubmit = async (type, data, resetFunc, e) => {
+    e.preventDefault();
+    try {
+      let mapped = { type: type.toUpperCase() };
+      switch (type) {
+        case "tax":
+          mapped.name = data.taxName;
+          mapped.value = Number(data.taxPercentage);
+          mapped.unit = "PERCENTAGE";
+          break;
+        case "delivery":
+          mapped.name = "Delivery Zones";
+          mapped.value = Number(data.deliveryCharge);
+          mapped.unit = "AMOUNT";
+          break;
+        case "discount":
+          mapped.name = data.discountName;
+          mapped.value = Number(data.discountPercentage);
+          mapped.unit = "PERCENTAGE";
+          break;
+        case "package":
+          mapped.name = data.packageName;
+          mapped.value = Number(data.packagePrice);
+          mapped.unit = "AMOUNT";
+          break;
+        case "service":
+          mapped.type = "SERVICE_CHARGE";
+          mapped.name = data.serviceName;
+          mapped.value = Number(data.servicePrice);
+          mapped.unit = "PERCENTAGE";
+          break;
+        default:
+          return;
+      }
+      await dispatch(addSetting(mapped)).unwrap();
+      toast.success(`${type.toUpperCase()} setting added`);
+      resetFunc();
+      setOpen(false);
+    } catch {
+      toast.error("Failed to add setting");
+    }
+  };
+
+  // ────────────────────────────────────────
+  // receipt-specific handlers
+  // ────────────────────────────────────────
+  const handleReceiptSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await dispatch(
+        updateReceiptSettings({
+          header: receiptData.receiptHeader,
+          businessNumber: receiptData.businessNumber,
+          address: receiptData.receiptAddress,
+          footer: receiptData.receiptFooter,
+        })
+      ).unwrap();
+      toast.success("Receipt settings saved");
+      setOpen(false);
+    } catch {
+      toast.error("Failed to save receipt settings");
+    }
+  };
+
+  const handleClearReceiptField = async (field) => {
+    try {
+      await dispatch(deleteReceiptField(field)).unwrap();
+      toast.success(`${field} cleared`);
+    } catch {
+      toast.error(`Failed to clear ${field}`);
+    }
+  };
+
+  // ────────────────────────────────────────
+  // render list for array-based settings
+  // ────────────────────────────────────────
   const renderSettingList = (items = []) => (
     <div className="overflow-y-auto max-h-64 mb-4">
       {items.length > 0 ? (
@@ -131,7 +185,7 @@ const AdminSettings = () => {
             className="flex items-center justify-between border-b px-2 mb-2 py-1"
           >
             <span className="text-sm">
-              {item.name || item.type} | {item.value}
+              {item.name} | {item.value}
               {item.unit === "PERCENTAGE"
                 ? "%"
                 : item.unit === "AMOUNT"
@@ -150,6 +204,57 @@ const AdminSettings = () => {
     </div>
   );
 
+  // ────────────────────────────────────────
+  // render current receipt settings
+  // ────────────────────────────────────────
+  const renderReceiptCurrent = () => {
+    if (isReceiptLoading) return <p>Loading receipt…</p>;
+    if (receiptError) return <p className="text-red-500">{receiptError}</p>;
+
+    return (
+    <div className="bg-white shadow-sm p-4 rounded-lg mb-6">
+  <h3 className="text-lg font-semibold mb-4 border-b pb-2">
+    Current Receipt
+  </h3>
+
+  <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
+    <div>
+      <dt className="text-xs font-medium text-gray-500">Header</dt>
+      <dd className="mt-1 text-gray-900">{receipt.header || "—"}</dd>
+    </div>
+    <div>
+      <dt className="text-xs font-medium text-gray-500">Address</dt>
+      <dd className="mt-1 text-gray-900">{receipt.address || "—"}</dd>
+    </div>
+    <div>
+      <dt className="text-xs font-medium text-gray-500">Business #</dt>
+      <dd className="mt-1 text-gray-900">{receipt.businessNumber || "—"}</dd>
+    </div>
+    <div>
+      <dt className="text-xs font-medium text-gray-500">Footer</dt>
+      <dd className="mt-1 text-gray-900">{receipt.footer || "—"}</dd>
+    </div>
+  </dl>
+
+  <div className="flex flex-wrap gap-2 mt-4">
+    {["header", "address", "businessNumber", "footer"].map((f) => (
+      <button
+        key={f}
+        onClick={() => handleClearReceiptField(f)}
+        className="bg-red-50 text-red-600 px-3 py-1 rounded-full text-xs font-medium hover:bg-red-100 transition"
+      >
+        Clear {f}
+      </button>
+    ))}
+  </div>
+</div>
+
+    );
+  };
+
+  // ────────────────────────────────────────
+  // define each sheet's content
+  // ────────────────────────────────────────
   const settingsItems = [
     {
       name: "Tax Settings",
@@ -176,7 +281,7 @@ const AdminSettings = () => {
     },
     {
       name: "Delivery Settings",
-      description: "Configure delivery options and fees for your orders.",
+      description: "Configure delivery options and fees.",
       content: (
         <>
           {renderSettingList(DELIVERY)}
@@ -199,7 +304,7 @@ const AdminSettings = () => {
     },
     {
       name: "Discount Settings",
-      description: "Set up and manage discount codes and promotions.",
+      description: "Set up and manage discounts and promotions.",
       content: (
         <>
           {renderSettingList(DISCOUNT)}
@@ -222,7 +327,7 @@ const AdminSettings = () => {
     },
     {
       name: "Package Settings",
-      description: "Manage package options and settings for your business.",
+      description: "Manage package options and pricing.",
       content: (
         <>
           {renderSettingList(PACKAGE)}
@@ -244,8 +349,8 @@ const AdminSettings = () => {
       ),
     },
     {
-      name: "Service Charges Settings",
-      description: "Configure service charges for your orders.",
+      name: "Service Charges",
+      description: "Configure service charge percentages.",
       content: (
         <>
           {renderSettingList(SERVICE_CHARGE)}
@@ -268,40 +373,34 @@ const AdminSettings = () => {
     },
     {
       name: "Receipt Settings",
-      description: "Manage receipt settings and templates for your business.",
+      description: "Manage receipt header, address, business #, and footer.",
       content: (
         <>
-          {renderSettingList(RECEIPT)}
+          {renderReceiptCurrent()}
           <CommonForm
             formData={receiptData}
             setformData={setReceiptData}
-            buttonText="Add"
+            buttonText="Save"
             formControls={receiptSettingstFormControls}
-            onSubmit={(e) =>
-              handleSubmit(
-                "receipt",
-                receiptData,
-                () => setReceiptData(initialReceiptFormData),
-                e
-              )
-            }
+            onSubmit={handleReceiptSubmit}
           />
         </>
       ),
     },
     {
       name: "Payment Settings",
-      description: "Manage payment methods and settings for your business.",
-      content: <p>Enable/disable payment methods like UPI, Cash, Card.</p>,
+      description: "Enable/disable payment methods like UPI, Cash, Card.",
+      content: <p>Coming soon…</p>,
     },
     {
       name: "Roundoff Settings",
-      description: "Configure roundoff settings for your bills.",
-      content: <p>Enable auto round-off and rounding logic.</p>,
+      description: "Configure automatic rounding logic for bills.",
+      content: <p>Coming soon…</p>,
     },
   ];
 
   return (
+    
     <div className="p-4">
       <h1 className="text-2xl text-primary1 font-semibold mb-4">
         Admin Settings
@@ -330,18 +429,18 @@ const AdminSettings = () => {
                 </p>
               </div>
             </SheetTrigger>
-            <SheetContent side="right">
+            <SheetContent side="right" className="overflow-y-auto scrollbar-hidden">
               <SheetHeader>
                 <SheetTitle className="text-primary1">{item.name}</SheetTitle>
                 <SheetDescription>{item.description}</SheetDescription>
               </SheetHeader>
-              <div className="mt-4 p-3">{item.content}</div>
+              <div className="mt-4 p-4">{item.content}</div>
             </SheetContent>
           </Sheet>
         ))}
       </div>
     </div>
   );
-};
 
-export default AdminSettings;
+  
+}
