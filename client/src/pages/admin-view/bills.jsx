@@ -64,8 +64,7 @@ const AdminBills = () => {
     dispatch(fetchReceiptSettings());
   }, [dispatch]);
 
-    const { header, address, businessNumber,footer } = data;
-
+  const { header, address, businessNumber, footer } = data;
 
   useEffect(() => {
     dispatch(getAllBillsAdmin());
@@ -527,20 +526,52 @@ const AdminBills = () => {
                   </SheetTrigger>
                   <SheetContent
                     side="right"
-                    className="w-[370px] sm:w-[420px] overflow-y-auto"
+                    className="md:w-[400px] md:pr-2 w-[380px] overflow-y-auto"
                   >
-                    <div className="flex justify-around p-3 pt-10 items-center">
+                    <div className="flex justify-center items-center gap-6 mt-6">
+                      <Button
+                        onClick={handleSendWhatsApp}
+                        className="p-3 rounded-lg w-20 h-10 cursor-pointer  bg-green-100 transition-colors"
+                        title="Send via WhatsApp"
+                      >
+                        <FaWhatsapp className="text-green-500 w-12 h-12  " />
+                      </Button>
+
+                      <Button
+                        onClick={handleThermalBrowserPrint}
+                        className="p-3 cursor-pointer rounded-lg w-20 h-10  bg-blue-100 transition-colors"
+                        title="Browser Print"
+                      >
+                        <TiPrinter className="text-blue-500 w-12 h-12  " />
+                      </Button>
+
+                      <Button
+                        onClick={handleDirectPrint}
+                        className="p-3 cursor-pointer rounded-lg w-20 h-10  bg-gray-100 transition-colors"
+                        title="Direct Thermal Print"
+                      >
+                        <FaUsb className="text-gray-600 w-12 h-12  " />
+                      </Button>
+                    </div>
+
+                    {/* Add spacing before next group */}
+                    <div className=" flex justify-center items-center gap-6">
                       <Button
                         variant="destructive"
-                        className="rounded-2xl w-25"
+                        className="rounded-lg w-20 h-10 cursor-pointer "
                       >
                         DELETE
                       </Button>
-                      <Button variant="default" className="rounded-2xl w-25">
+
+                      <Button
+                        variant="default"
+                        className="rounded-lg w-20 h-10 cursor-pointer "
+                      >
                         EDIT
                       </Button>
+
                       <span
-                        className={`text-xs font-semibold px-2 py-1 w-25 h-10 flex items-center justify-center rounded-full ${
+                        className={`text-sm font-semibold px-4 py-2 flex items-center justify-center rounded-lg w-20 h-10 ${
                           bill.status === "PAID"
                             ? "bg-green-100 text-primary1"
                             : "bg-red-100 text-red-700"
@@ -548,49 +579,6 @@ const AdminBills = () => {
                       >
                         {bill.status === "PAID" ? "Paid" : "Unpaid"}
                       </span>
-                    </div>
-
-                    {/* Print + Share */}
-                    <div className="flex justify-around items-center gap-4 my-3">
-                      {/* <input
-                        type="text"
-                        className="border p-2 rounded"
-                        placeholder="Enter customer phone number"
-                        value={phoneNumber}
-                        onChange={(e) => setPhoneNumber(e.target.value)}
-                      /> */}
-
-                      <Button
-                        onClick={handleSendWhatsApp}
-                        className="w-20 h-10 rounded-lg cursor-pointer "
-                      >
-                        <FaWhatsapp
-                          size={24}
-                          className=" cursor-pointer"
-                          title="WhatsApp"
-                        />
-                      </Button>
-                      <Button
-                        onClick={handleThermalBrowserPrint}
-                        className="w-20 h-10 rounded-lg  cursor-pointer "
-                      >
-                        <TiPrinter
-                          size={24}
-                          className=" cursor-pointer"
-                          title="Browser Print"
-                        />
-                      </Button>
-
-                      <Button
-                        onClick={handleDirectPrint}
-                        className="w-20 h-10 rounded-lg cursor-pointer"
-                      >
-                        <FaUsb
-                          size={24}
-                          className=" cursor-pointer"
-                          title="Direct Thermal Print"
-                        />
-                      </Button>
                     </div>
                     <div className="text-center text-sm px-4">
                       <h2 className="text-xl font-bold">
@@ -600,7 +588,6 @@ const AdminBills = () => {
                       <p>{businessNumber || "GSTIN0000XXXX"}</p>
                       <p>www.ordarly.com</p>
                       <p>+91 8459278930</p>
-                      
                       <hr className="my-2" />
                       <div className="flex justify-between text-left text-xs">
                         <div>
@@ -705,7 +692,9 @@ const AdminBills = () => {
                         </div>
                       </div>{" "}
                       <hr className="my-2" />
-                      <p className="text-xs">{footer || "Thanks for visiting!"}</p>
+                      <p className="text-xs">
+                        {footer || "Thanks for visiting!"}
+                      </p>
                       {bill.status !== "PAID" && (
                         <div className="mt-4 flex justify-around">
                           <AlertDialog>

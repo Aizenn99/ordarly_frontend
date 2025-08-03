@@ -37,19 +37,20 @@ export const addTable = createAsyncThunk(
 // ✅ Update Table
 export const updateTable = createAsyncThunk(
   "admin/update-table",
-  async ({ id, formdata }) => {
+  async ({ id, formData }) => {
     const result = await axios.put(
       `${import.meta.env.VITE_API_URL}/api/admin/update-table/${id}`,
-      formdata,
+      formData,
       {
         headers: {
-          "Content-Type": "multipart/form-data",
+          "Content-Type": "application/json",  // ✅ send JSON
         },
       }
     );
-    return result.data; // updated table inside result.data.data
+    return result.data;
   }
 );
+
 
 export const changeTableStatus = createAsyncThunk(
   "admin/change-table-status",  
