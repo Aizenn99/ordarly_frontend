@@ -13,7 +13,6 @@ export default function StaffSettings() {
 
   return (
     <div className="w-full max-w-md sm:max-w-lg md:max-w-xl mx-auto bg-white text-black p-4 sm:p-6 rounded-2xl shadow-md space-y-6">
-      {/* Profile Summary */}
       <div className="text-sm flex flex-col sm:flex-row justify-between text-gray-600">
         <span className="mb-1 sm:mb-0">User Profile</span>
         <span>
@@ -21,7 +20,6 @@ export default function StaffSettings() {
         </span>
       </div>
 
-      {/* Profile Avatar */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4 items-center text-center sm:text-left">
         <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center text-4xl">
           👔

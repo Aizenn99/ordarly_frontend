@@ -22,6 +22,7 @@ import {
   sendToKitchen,
 } from "@/store/kitchen-slice/order-slice";
 import { changeTableStatus, getTable } from "@/store/admin-slice/table";
+import { IoSearchSharp } from "react-icons/io5";
 
 const StaffMenu = () => {
   const { menuItem, menucategoris, subcats } = useSelector(
@@ -36,6 +37,7 @@ const StaffMenu = () => {
     const saved = localStorage.getItem("cart_quantities");
     return saved ? JSON.parse(saved) : {};
   });
+  const [searchQuery, setSearchQuery] = useState("");
 
   const apiBaseURL = import.meta.env.VITE_API_URL; // Make sure it's set to IP
   const fixImageURL = (url) => {
@@ -383,7 +385,22 @@ const StaffMenu = () => {
             selectedSubCategory
           : true;
 
-        return categoryMatch && subCatMatch;
+        const searchMatch = searchQuery
+          ? item.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            item.description
+              ?.toLowerCase()
+              .includes(searchQuery.toLowerCase()) ||
+            menucategoris
+              .find((c) => c._id === item.category)
+              ?.name?.toLowerCase()
+              ?.includes(searchQuery.toLowerCase()) ||
+            subcats
+              .find((s) => s._id === item.subcategory)
+              ?.name?.toLowerCase()
+              ?.includes(searchQuery.toLowerCase())
+          : true;
+
+        return categoryMatch && subCatMatch && searchMatch;
       })
     : [];
 
@@ -493,9 +510,19 @@ const StaffMenu = () => {
           </div>
         )}
 
-        <div className="flex flex-col bg-gray-100 rounded-2xl border p-1 gap-4">
+        <div className="flex flex-col bg-gray-100 rounded-2xl border p-2 gap-1 ">
+          <div className=" py-2 relative">
+            <IoSearchSharp className="absolute left-3 top-1/2 -translate-y-1/2 text-primary1 w-5 h-5" />
+            <input
+              type="text"
+              placeholder="Search menu items..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value.trimStart())}
+              className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary1"
+            />
+          </div>
           <div className="w-full max-w-[380px] sm:max-w-full">
-            <h2 className="font-semibold sticky top-0 z-9 text-md bg-gray-100 p-1 px-4">
+            <h2 className="font-semibold sticky top-0 z-9 text-md bg-gray-100 p-1 px-4 ">
               Categories
             </h2>
             <div className="overflow-x-auto scrollbar-hide w-full">

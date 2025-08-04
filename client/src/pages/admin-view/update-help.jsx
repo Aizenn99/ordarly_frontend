@@ -3,7 +3,7 @@ import React from "react";
 
 export default function AdminUpdate() {
   return (
-    <div className="flex flex-col min-h-screen bg-[#f3faf9] text-black px-4 py-6 sm:px-6 md:px-10">
+    <div className="flex flex-col min-h-screen bg-[#E3F4F4] text-black rounded-lg px-4 py-6 sm:px-6 md:px-10">
       {/* Main Content */}
       <main className="flex-1">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
