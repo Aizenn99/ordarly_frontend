@@ -42,7 +42,7 @@ const StaffFooter = () => {
   ];
 
   return (
-    <div className="flex justify-around bg-white p-5  shadow-md">
+    <div className="flex justify-around  p-5  shadow-md">
       {StaffFooterMenuItems.map((item) => {
         const isActive = location.pathname === item.path;
         return (

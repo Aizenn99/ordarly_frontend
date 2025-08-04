@@ -1,29 +1,30 @@
+// src/pages/staff-view/notification.jsx
+
 import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { eventBus } from "@/utils/eventBus"; // ✅ import eventBus
+import { eventBus } from "@/utils/eventBus";
 
 const StaffNotifications = () => {
   const { user } = useSelector((state) => state.auth);
   const [notifications, setNotifications] = useState([]);
 
-  // ✅ Initial load + subscribe to kot-notification
   useEffect(() => {
-    // Load existing notifications
+    // Load existing notifications from localStorage
     const stored = localStorage.getItem("staff_notifications");
     if (stored) {
       setNotifications(JSON.parse(stored));
     }
 
-    // Listen for real-time updates via eventBus
+    // Handler for incoming kot-notification events
     const handler = (updated) => {
       setNotifications(updated);
+      localStorage.setItem("staff_notifications", JSON.stringify(updated));
     };
 
     eventBus.on("kot-notification", handler);
-
     return () => {
       eventBus.off("kot-notification", handler);
     };
@@ -63,7 +64,9 @@ const StaffNotifications = () => {
 
                 {notif.items?.length > 0 && (
                   <div className="mt-2">
-                    <p className="text-sm font-semibold text-gray-600 mb-1">Prepared Items:</p>
+                    <p className="text-sm font-semibold text-gray-600 mb-1">
+                      Prepared Items:
+                    </p>
                     <ul className="list-disc list-inside text-sm text-gray-800">
                       {notif.items.map((item, i) => (
                         <li key={i}>

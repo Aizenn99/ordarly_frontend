@@ -1,9 +1,13 @@
+// src/App.jsx
+
+import React, { useEffect, useMemo } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { useEffect, useMemo } from "react";
-import { checkAuth } from "./store/auth-slice/auth";
-import { eventBus } from "./utils/eventBus"; // ✅ Import eventBus
 import io from "socket.io-client";
+import { checkAuth } from "./store/auth-slice/auth";
+import { eventBus } from "./utils/eventBus";
+
+import NotificationSoundHandler from "./components/notificationshandler"; // <-- exact path & casing
 
 import AuthLayout from "./components/auth/AuthLayout";
 import AuthLogin from "./pages/auth/login";
@@ -32,85 +36,78 @@ import StaffBill from "./pages/staff-view/Bill";
 import CustomerInfo from "./components/staff-view/CustomerInfo";
 import StaffPayBill from "./pages/staff-view/PayBill";
 import StaffNotifications from "./pages/staff-view/notification";
+import StaffSettings from "./pages/staff-view/settings";
 
 import Loader from "./components/common/Loader";
 import { Toaster } from "react-hot-toast";
-import StaffSettings from "./pages/staff-view/settings";
 
-function App() {
+export default function App() {
+  const dispatch = useDispatch();
   const { user, isAuthenticated, isLoading } = useSelector(
     (state) => state.auth
   );
-  const dispatch = useDispatch();
 
-  // ✅ Check auth on load
+  // 1️⃣ Check auth on mount
   useEffect(() => {
     dispatch(checkAuth());
   }, [dispatch]);
 
-  // ✅ Memoized socket with username query
+  // 2️⃣ Setup socket and eventBus
   const socket = useMemo(() => {
     if (!user?.userName) return null;
-
     const s = io(import.meta.env.VITE_API_URL, {
       transports: ["websocket"],
       withCredentials: true,
-      query: {
-        username: user.userName, // ✅ attach username
-      },
+      query: { username: user.userName },
     });
 
-    s.on("connect", () => {
-      console.log("✅ Socket connected:", s.id);
-    });
+    s.on("connect", () => console.log("✅ Socket connected:", s.id));
+    s.on("connect_error", (err) =>
+      console.error("❌ Socket error:", err.message)
+    );
 
-    s.on("connect_error", (err) => {
-      console.error("❌ Socket connection error:", err.message);
-    });
-    s.on("new-bill", (bill) => {
-      eventBus.emit("bill-update", bill);
-    });
+    s.on("new-bill", (bill) => eventBus.emit("bill-update", bill));
 
     s.on("kot-ready", (data) => {
-      console.log("🔔 [App] kot-ready received:", data);
-
+      console.log("🔔 kot-ready:", data);
       const newNotif = { ...data, timestamp: Date.now() };
       const existing =
         JSON.parse(localStorage.getItem("staff_notifications")) || [];
       const updated = [newNotif, ...existing];
-
-      localStorage.setItem("staff_notifications", JSON.stringify(updated));
-      console.log("📦 Notifications saved to localStorage:", updated);
-
+      localStorage.setItem(
+        "staff_notifications",
+        JSON.stringify(updated)
+      );
       eventBus.emit("kot-notification", updated);
-      console.log("📢 Emitted kot-notification");
     });
 
-    s.on("disconnect", () => {
-      console.warn("⚠️ Socket disconnected");
-    });
-
+    s.on("disconnect", () => console.warn("⚠️ Socket disconnected"));
     return s;
   }, [user]);
 
-  // ✅ Cleanup socket on unmount or user change
-  useEffect(() => {
-    return () => {
+  // 3️⃣ Cleanup
+  useEffect(
+    () => () => {
       socket?.disconnect();
-    };
-  }, [socket]);
+    },
+    [socket]
+  );
 
   if (isLoading) return <Loader />;
 
   return (
     <div>
       <Toaster />
+
+      {/* 🔉 Global sound handler */}
+      <NotificationSoundHandler />
+
       <Routes>
         <Route path="/" element={<Navigate to="/auth/login" replace />} />
 
         {/* Auth */}
         <Route
-          path="/auth"
+          path="/auth/*"
           element={
             <CheckAuth isAuthenticated={isAuthenticated} user={user}>
               <AuthLayout />
@@ -123,7 +120,7 @@ function App() {
 
         {/* Admin */}
         <Route
-          path="/admin"
+          path="/admin/*"
           element={
             <CheckAuth isAuthenticated={isAuthenticated} user={user}>
               <AdminLayout />
@@ -142,7 +139,7 @@ function App() {
 
         {/* Kitchen */}
         <Route
-          path="/kitchen"
+          path="/kitchen/*"
           element={
             <CheckAuth isAuthenticated={isAuthenticated} user={user}>
               <KitchenLayout />
@@ -155,7 +152,7 @@ function App() {
 
         {/* Staff */}
         <Route
-          path="/staff"
+          path="/staff/*"
           element={
             <CheckAuth isAuthenticated={isAuthenticated} user={user}>
               <StaffLayout />
@@ -168,12 +165,13 @@ function App() {
           <Route path="customer" element={<CustomerInfo />} />
           <Route path="bills" element={<StaffBill />} />
           <Route path="pay-bill" element={<StaffPayBill />} />
-          <Route path="notifications" element={<StaffNotifications />} />
+          <Route
+            path="notifications"
+            element={<StaffNotifications />}
+          />
           <Route path="settings" element={<StaffSettings />} />
         </Route>
       </Routes>
     </div>
   );
 }
-
-export default App;

@@ -65,8 +65,8 @@ const StaffNavbar = () => {
         {/* 🧑‍ Staff User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Avatar className="w-8 h-8 flex items-center cursor-pointer justify-center">
-              <AvatarFallback>
+            <Avatar className="w-8 h-8 flex items-center cursor-pointer border border-primary1 justify-center">
+              <AvatarFallback  className="" >
                 {user?.userName ? user.userName[0].toUpperCase() : ""}
               </AvatarFallback>
             </Avatar>

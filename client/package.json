@@ -34,6 +34,8 @@
     "emoji-picker-react": "^4.12.2",
     "framer-motion": "^12.16.0",
     "jspdf": "^3.0.1",
+    "lodash.debounce": "^4.0.8",
+    "lodash.throttle": "^4.1.1",
     "lottie-react": "^2.4.1",
     "lucide-react": "^0.483.0",
     "mitt": "^3.0.1",
@@ -51,7 +53,8 @@
     "tailwind-scrollbar": "^4.0.2",
     "tailwind-scrollbar-hide": "^2.0.0",
     "tailwindcss": "^4.0.15",
-    "tw-animate-css": "^1.2.4"
+    "tw-animate-css": "^1.2.4",
+    "use-debounce": "^10.0.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",

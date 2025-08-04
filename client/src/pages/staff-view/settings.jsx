@@ -1,11 +1,33 @@
-import React, { useState } from "react";
+// StaffSettings.jsx
+
+import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 
 export default function StaffSettings() {
   const { user } = useSelector((state) => state.auth);
 
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-  const [orderSoundEnabled, setOrderSoundEnabled] = useState(true);
+  // Initialize toggles from localStorage (default to true)
+  const [notificationsEnabled, setNotificationsEnabled] = useState(() =>
+    JSON.parse(localStorage.getItem("notificationsEnabled")) ?? true
+  );
+  const [orderSoundEnabled, setOrderSoundEnabled] = useState(() =>
+    JSON.parse(localStorage.getItem("orderSoundEnabled")) ?? true
+  );
+
+  // Persist toggles whenever they change
+  useEffect(() => {
+    localStorage.setItem(
+      "notificationsEnabled",
+      JSON.stringify(notificationsEnabled)
+    );
+  }, [notificationsEnabled]);
+
+  useEffect(() => {
+    localStorage.setItem(
+      "orderSoundEnabled",
+      JSON.stringify(orderSoundEnabled)
+    );
+  }, [orderSoundEnabled]);
 
   const username = user?.userName || "John Doe";
   const email = user?.email || "user@example.com";

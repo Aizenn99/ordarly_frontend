@@ -5,7 +5,7 @@ import StaffFooter from "./footer";
 
 const StaffLayout = () => {
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col scrollbar-hide ">
       {/* Sticky Navbar */}
       <div className="sticky top-0 z-10 bg-white border-b">
         <StaffNavbar />

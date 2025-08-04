@@ -18,9 +18,9 @@ const StaffHome = () => {
         <p className="text-gray-600 mb-4">
           Order from your table and relax while we prepare your meal
         </p>
-        <Button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 mb-4">
+        {/* <Button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 mb-4">
           Order now
-        </Button>
+        </Button> */}
 
         {/* Slider Section */}
    
@@ -34,8 +34,8 @@ const StaffHome = () => {
   <CarouselContent>
     {[
       "https://images.unsplash.com/photo-1600891964599-f61ba0e24092",
-      "https://images.unsplash.com/photo-1604908176965-d1f418b443f8",
-      "https://images.unsplash.com/photo-1613141411663-b7c19be33622",
+      "https://wallpaperaccess.com/full/1537562.png",
+      "https://cdn.healthnwell.com/healthnwell/wp-content/uploads/2018/04/8bef1965-2404-4929-ab29-1fdb1eb3b69f.jpg",
     ].map((url, index) => (
       <CarouselItem key={index}>
         <img
@@ -99,7 +99,7 @@ const StaffHome = () => {
         <h2 className="text-2xl font-semibold mb-6">The Most Popular</h2>
         <div className="grid grid-cols-2 sm:grid-cols-2 gap-6">
           <div className="bg-white rounded-xl overflow-hidden shadow-md">
-            <img
+            {/* <img
               src="https://images.unsplash.com/photo-1604908176965-d1f418b443f8"
               alt="Popular dish 1"
               className="w-full h-56 object-cover"
@@ -110,7 +110,7 @@ const StaffHome = () => {
               src="https://images.unsplash.com/photo-1613141411663-b7c19be33622"
               alt="Popular dish 2"
               className="w-full h-56 object-cover"
-            />
+            /> */}
           </div>
         </div>
       </section>

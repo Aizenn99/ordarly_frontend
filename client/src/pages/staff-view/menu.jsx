@@ -3,7 +3,7 @@ import {
   fetchSubCategory,
   getMenuItem,
 } from "@/store/admin-slice/menuItem";
-import React, { use, useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { LuUtensils } from "react-icons/lu";
 import { Sheet, SheetContent, SheetHeader } from "@/components/ui/sheet";
@@ -23,8 +23,15 @@ import {
 } from "@/store/kitchen-slice/order-slice";
 import { changeTableStatus, getTable } from "@/store/admin-slice/table";
 import { IoSearchSharp } from "react-icons/io5";
+import debounce from "lodash.debounce";
 
 const StaffMenu = () => {
+
+  const location   = useLocation();
+const state      = location.state || {};
+const tableName  = state.tableName;
+const guestCount = state.guestCount;
+
   const { menuItem, menucategoris, subcats } = useSelector(
     (state) => state.adminMenuItem
   );
@@ -64,7 +71,6 @@ const StaffMenu = () => {
   }, [quantities]);
 
   const dispatch = useDispatch();
-  const { state } = useLocation();
 
   const isEditMode = !!state?.items && !!state?.billNumber;
 
@@ -155,24 +161,24 @@ const StaffMenu = () => {
   }, [state?.tableName]);
 
   useEffect(() => {
-    if (openCart && state?.tableName) {
-      dispatch(getCartByTable(state.tableName))
-        .unwrap()
-        .then((res) => {
-          setCart(res);
-          setQuantities(() => {
-            const initial = {};
-            res.items.forEach((item) => {
-              const itemId = item.itemId?._id || item.itemId;
-              initial[itemId] = item.quantity;
-            });
-
-            return initial;
+  if (openCart && tableName) {
+    dispatch(getCartByTable(tableName))
+      .unwrap()
+      .then(res => {
+        setCart(res);
+        setCartItems(res.items || []);      // ← add this
+        setQuantities(() => {
+          const initial = {};
+          res.items.forEach(item => {
+            const id = item.itemId?._id || item.itemId;
+            initial[id] = item.quantity;
           });
-        })
-        .catch(() => toast.error("Failed to fetch cart"));
-    }
-  }, [openCart, state?.tableName, dispatch]);
+          return initial;
+        });
+      })
+      .catch(() => toast.error("Failed to fetch cart"));
+  }
+}, [openCart, tableName, dispatch]);
 
   useEffect(() => {
     if (cart?.items?.length) {
@@ -222,113 +228,62 @@ const StaffMenu = () => {
     setOpenMenu(true);
   };
 
-  const handleAddClick = (id) => {
-    if (!state?.tableName) {
-      toast.error("Please select the table first");
-      return;
-    }
+  
 
-    setQuantities((prev) => ({ ...prev, [id]: 1 }));
 
-    dispatch(
-      addItemToCart({
-        tableName: state.tableName,
-        guestCount: state.guestCount,
-        itemId: id,
-        quantity: 1,
-      })
-    )
-      .unwrap()
-      .then(() => {
-        toast.success("Item added");
-        dispatch(getCartByTable(state.tableName))
-          .unwrap()
-          .then((updatedCart) => {
-            setCart(updatedCart); // 🟢 update cart state here
-            setCartItems(updatedCart.items || []); // 🟢 update visible items
-          });
-      })
-      .catch(() => toast.error("Failed to add item"));
-  };
+  const debouncedUpdate = useMemo(
+  () =>
+    debounce((id, qty) => {
+      dispatch(addItemToCart({ tableName, guestCount, itemId: id, quantity: qty }))
+        .unwrap()
+        .catch(() => toast.error("Failed to sync quantity"));
+    }, 40),
+  [dispatch, tableName, guestCount]
+);
 
-  const handleIncrease = (id) => {
-    const newQty = quantities[id] + 1;
-    setQuantities((prev) => ({ ...prev, [id]: newQty }));
+useEffect(() => {
+  return () => debouncedUpdate.cancel();
+}, [debouncedUpdate]);
 
-    dispatch(
-      addItemToCart({
-        tableName: state.tableName,
-        guestCount: state.guestCount,
-        itemId: id,
-        quantity: newQty,
-      })
-    )
-      .unwrap()
-      .then(() => {
-        toast.success("Quantity updated");
-        dispatch(getCartByTable(state.tableName))
-          .unwrap()
-          .then((updatedCart) => {
-            setCart(updatedCart);
-            setCartItems(updatedCart.items || []);
-          });
-      })
-      .catch(() => toast.error("Failed to update"));
-  };
-
-  const handleDecrease = (id) => {
-    const newQty = quantities[id] - 1;
-
-    if (newQty <= 0) {
-      setQuantities((prev) => {
-        const updated = { ...prev };
-        delete updated[id];
-        return updated;
+  function handleAddClick(id) {
+    if (!tableName) return toast.error('Pick a table first');
+    // Optimistic UI
+    setQuantities(q => ({ ...q, [id]: 1 }));
+    setCartItems(cs => [...cs, { itemId: id, quantity: 1 }]);
+    // Fire & forget
+    dispatch(addItemToCart({ tableName, guestCount, itemId: id, quantity: 1 }))
+      .unwrap().catch(() => {
+        // roll back on error
+        setQuantities(q => { const c={...q}; delete c[id]; return c; });
+        setCartItems(cs => cs.filter(x => x.itemId !== id));
+        toast.error('Add failed');
       });
+  }
 
-      dispatch(
-        removeItemFromCart({
-          tableName: state.tableName,
-          itemId: id,
-        })
-      )
-        .unwrap()
-        .then(() => {
-          toast.success("Item removed");
-          dispatch(getCartByTable(state.tableName))
-            .unwrap()
-            .then((updatedCart) => {
-              setCart(updatedCart);
-              setCartItems(updatedCart.items || []);
-            });
-        })
-        .catch(() => toast.error("Failed to remove item"));
+  // 3. Handle increase
+  function handleIncrease(id) {
+    const newQty = (quantities[id]||0) + 1;
+    setQuantities(q => ({ ...q, [id]: newQty }));
+    setCartItems(cs => cs.map(x => x.itemId===id ? { ...x, quantity: newQty } : x));
+    debouncedUpdate(id, newQty);
+  }
+
+  // 4. Handle decrease
+  function handleDecrease(id) {
+    const newQty = (quantities[id]||1) - 1;
+    if (newQty <= 0) {
+      setQuantities(q => { const c={...q}; delete c[id]; return c; });
+      setCartItems(cs => cs.filter(x => x.itemId !== id));
+      dispatch(removeItemFromCart({ tableName, itemId: id })).unwrap().catch(() => toast.error('Remove failed'));
     } else {
-      // 🟢 Handle decrease in quantity
-      setQuantities((prev) => ({ ...prev, [id]: newQty }));
-
-      dispatch(
-        addItemToCart({
-          tableName: state.tableName,
-          guestCount: state.guestCount,
-          itemId: id,
-
-          quantity: newQty,
-        })
-      )
-        .unwrap()
-        .then(() => {
-          toast.success("Quantity decreased");
-          dispatch(getCartByTable(state.tableName))
-            .unwrap()
-            .then((updatedCart) => {
-              setCart(updatedCart);
-              setCartItems(updatedCart.items || []);
-            });
-        })
-        .catch(() => toast.error("Failed to update quantity"));
+      setQuantities(q => ({ ...q, [id]: newQty }));
+      setCartItems(cs => cs.map(x => x.itemId===id ? { ...x, quantity: newQty } : x));
+      debouncedUpdate(id, newQty);
     }
-  };
+  }
+
+
+
 
   const handleGenerateBill = () => {
     if (!state?.tableName) {
@@ -404,15 +359,13 @@ const StaffMenu = () => {
       })
     : [];
 
-  const totalItems = cart?.items?.length || 0;
-  const subtotal = cartItems.reduce(
-    (total, item) => total + item.itemId.price * item.quantity,
-    0
-  );
+  const totalItems = cartItems?.length || 0;
+ const subtotal = cartItems.reduce((sum, item) => {
+  const price = item.itemId?.price || 0;
+  return sum + price * item.quantity;
+}, 0);
   const charges = Math.round(subtotal * 0.05); // or use .toFixed(2) if decimals are needed
-  // flat or calculate dynamically
-
-  // kitchen order ticket
+ 
 
   function handleSendToKitchen() {
     if (!state?.tableName || !state?.spaceName) {
@@ -687,7 +640,7 @@ const StaffMenu = () => {
         </button>
       </div>
       <Sheet onOpenChange={setopenCart} open={openCart}>
-        <SheetContent className="w-96 overflow-auto" side="right">
+        <SheetContent className="w-90 overflow-auto" side="right">
           <SheetHeader>
             <div className="flex items-center mt-8 justify-between">
               <span className="text-sm font-semibold text-black">
