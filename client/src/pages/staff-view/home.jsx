@@ -18,7 +18,7 @@ const StaffHome = () => {
         <p className="text-gray-600 mb-4">
           Order from your table and relax while we prepare your meal
         </p>
-        <Button className="bg-green-600 hover:bg-green-700 text-white px-6 py-2">
+        <Button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 mb-4">
           Order now
         </Button>
 
@@ -27,7 +27,7 @@ const StaffHome = () => {
 
 <Carousel
   plugins={[plugin.current]}
-  className="rounded-xl overflow-hidden"
+  className="rounded-xl overflow-hidden "
   onMouseEnter={plugin.current.stop}
   onMouseLeave={plugin.current.reset}
 >
