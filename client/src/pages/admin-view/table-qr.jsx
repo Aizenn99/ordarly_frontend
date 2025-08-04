@@ -35,10 +35,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 
-import {
-  addSpacesFormControls,
-  addTableFormControls,
-} from "@/config";
+import { addSpacesFormControls, addTableFormControls } from "@/config";
 
 const initialformData = {
   tableName: "",
@@ -70,33 +67,35 @@ const AdminTableQR = () => {
   }, [dispatch]);
 
   function onSubmit(e) {
-    e?.preventDefault?.();
+  e?.preventDefault?.();
 
-    if (currentEditedId) {
-      dispatch(updateTable({ id: currentEditedId, formData })).then((res) => {
-        if (res.payload.success) {
-          toast.success("Table Updated Successfully");
-          setOpenAddTable(false);
-          setFormData(initialformData);
-          setCurrentEditedId(null);
+  if (currentEditedId) {
+    // ✅ Update case
+    dispatch(updateTable({ id: currentEditedId, formData })).then((res) => {
+      if (res.payload.success) {
+        toast.success("Table Updated Successfully");
+        setOpenAddTable(false);
+        setFormData(initialformData);
+        setCurrentEditedId(null);
 
-          // ✅ Refresh updated table list
-          dispatch(getTable());
-        }
-      });
-    } else {
-      dispatch(addTable(formData)).then((res) => {
-        if (res.payload.success) {
-          toast.success("Table Added Successfully");
-          setFormData(initialformData);
-          setOpenAddTable(false);
+        // Refresh list
+        dispatch(getTable());
+      }
+    });
+  } else {
+    // ✅ Add case
+    dispatch(addTable(formData)).then((res) => {
+      if (res.payload.success) {
+        toast.success("Table Added Successfully");
+        setFormData(initialformData);
+        setOpenAddTable(false);
 
-          // ✅ Refresh after add
-          dispatch(getTable());
-        }
-      });
-    }
+        // Refresh list
+        dispatch(getTable());
+      }
+    });
   }
+}
 
 
   function onAddSpaceSubmit(e) {
@@ -243,7 +242,10 @@ const AdminTableQR = () => {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
                     {tablesForSpace.length > 0 ? (
                       tablesForSpace.map((table, index) => {
-                        const statusLabel = getOptionLabel("status", table.status);
+                        const statusLabel = getOptionLabel(
+                          "status",
+                          table.status
+                        );
                         const cardColor =
                           statusLabel === "available"
                             ? "bg-green-200 border-primary1"
@@ -290,58 +292,58 @@ const AdminTableQR = () => {
       </div>
 
       {/* Dialog for Table Action */}
-        <Dialog open={showModal} onOpenChange={setShowModal}>
-          <DialogContent className="sm:max-w-[400px] flex flex-col justify-between">
-            <DialogHeader>
-              <DialogTitle className="text-center">
-                {selectedTable?.tableName}
-              </DialogTitle>
-            </DialogHeader>
+      <Dialog open={showModal} onOpenChange={setShowModal}>
+        <DialogContent className="sm:max-w-[400px] flex flex-col justify-between">
+          <DialogHeader>
+            <DialogTitle className="text-center">
+              {selectedTable?.tableName}
+            </DialogTitle>
+          </DialogHeader>
 
-            <div className="space-y-3 text-center">
-              <p className="text-sm">Capacity: {selectedTable?.capacity}</p>
-              <p className="text-sm">Status: {selectedTable?.status}</p>
+          <div className="space-y-3 text-center">
+            <p className="text-sm">Capacity: {selectedTable?.capacity}</p>
+            <p className="text-sm">Status: {selectedTable?.status}</p>
+          </div>
+
+          <DialogFooter className="mt-6">
+            <div className="flex justify-center w-full gap-4">
+              <Button
+                variant="destructive"
+                size="sm"
+                className="w-24 h-12 rounded-xl"
+                onClick={() => {
+                  dispatch(deleteTable(selectedTable._id)).then((res) => {
+                    if (res.payload.success) {
+                      toast.success("Table deleted");
+                      setShowModal(false);
+                      dispatch(getTable());
+                    }
+                  });
+                }}
+              >
+                Delete
+              </Button>
+              <Button
+                className="bg-gray-300 hover:bg-gray-400 text-black w-24 h-12 rounded-xl"
+                onClick={() => {
+                  setFormData({
+                    tableName: selectedTable.tableName,
+                    capacity: selectedTable.capacity,
+                    status: selectedTable.status,
+                    spaces: selectedTable.spaces,
+                  })
+                  setCurrentEditedId(selectedTable._id);
+                  setOpenAddTable(true);
+                  setShowModal(false);
+                 
+                }}
+              >
+                Edit
+              </Button>
             </div>
-
-            <DialogFooter className="mt-6">
-              <div className="flex justify-center w-full gap-4">
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  className="w-24 h-12 rounded-xl"
-                  onClick={() => {
-                    dispatch(deleteTable(selectedTable._id)).then((res) => {
-                      if (res.payload.success) {
-                        toast.success("Table deleted");
-                        setShowModal(false);
-                        dispatch(getTable());
-                      }
-                    });
-                  }}
-                >
-                  Delete
-                </Button>
-                <Button
-                  className="bg-gray-300 hover:bg-gray-400 text-black w-24 h-12 rounded-xl"
-                  onClick={() => {
-                    setFormData({
-                      tableName: selectedTable.tableName,
-                      capacity: selectedTable.capacity,
-                      status: selectedTable.status,
-                      spaces: selectedTable.spaces,
-                    });
-                    setCurrentEditedId(selectedTable._id);
-                    setOpenAddTable(true);
-                    setShowModal(false);
-                  }}
-                >
-                  Edit
-                </Button>
-              </div>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -241,7 +241,7 @@ export default function AdminSettings() {
       <button
         key={f}
         onClick={() => handleClearReceiptField(f)}
-        className="bg-red-50 text-red-600 px-3 py-1 rounded-full text-xs font-medium hover:bg-red-100 transition"
+        className="bg-red-50 text-red-600 cursor-pointer px-3 py-1 rounded-full text-xs font-medium hover:bg-red-100 transition"
       >
         Clear {f}
       </button>

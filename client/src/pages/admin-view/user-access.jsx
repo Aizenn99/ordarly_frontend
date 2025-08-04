@@ -230,11 +230,22 @@ const AdminUser = () => {
         />
       </div>
 
+
+       {/* <input
+                        type="text"
+                        className="border p-2 rounded"
+                        placeholder="Enter customer phone number"
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(e.target.value)}
+                      /> */}
+
+                    {/* Print + Share */}
+
       {/* Add User Dialog */}
       <Dialog>
         <DialogTrigger asChild>
           <button
-            className="fixed bottom-15 right-18 z-50 bg-primary1 text-white rounded-xl p-3 text-sm shadow-lg"
+            className="fixed bottom-15 right-18 z-50 cursor-pointer  bg-primary1 text-white rounded-xl p-3 text-sm shadow-lg"
             title="Add New Item"
           >
             Add User +

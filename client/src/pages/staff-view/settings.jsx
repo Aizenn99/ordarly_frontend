@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { Input } from "@/components/ui/input";
 import { useSelector } from "react-redux";
 
 export default function StaffSettings() {
@@ -8,9 +7,8 @@ export default function StaffSettings() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [orderSoundEnabled, setOrderSoundEnabled] = useState(true);
 
-  const [username, setUsername] = useState(user?.userName || "John Doe");
-  const [email, setEmail] = useState(user?.email || "user@example.com");
-
+  const username = user?.userName || "John Doe";
+  const email = user?.email || "user@example.com";
   const role = user?.role || "staff";
 
   return (
@@ -34,22 +32,15 @@ export default function StaffSettings() {
         </div>
       </div>
 
+      {/* Display Name and Email */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="text-sm font-medium block mb-1">User Name</label>
-          <Input
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            className="text-sm w-full"
-          />
+          <p className="text-sm text-gray-800">{username}</p>
         </div>
         <div>
           <label className="text-sm font-medium block mb-1">Email</label>
-          <Input
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="text-sm w-full"
-          />
+          <p className="text-sm text-gray-800">{email}</p>
         </div>
       </div>
 
