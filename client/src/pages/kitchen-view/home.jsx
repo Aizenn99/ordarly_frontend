@@ -240,10 +240,12 @@ const OrderHeader = ({ order }) => (
   <div className="flex justify-between items-center">
     <div>
       <p className="font-semibold">Order #{order.kotNumber}</p>
-      <p className="text-sm">Staff | {order.username}</p>
+       <p className="text-sm text-primary1"> {order.spaceName}</p>
+      <p className="text-sm">Staff | <span className="text-primary1" >{order.username}</span></p>
       <p className="text-sm">
-        Table {order.tableName} • {order.guestCount} guests
+        Table <span className="text-primary1" >{order.tableName} </span>• {order.guestCount} guests
       </p>
+     
     </div>
     <div className="text-right">
       <span
@@ -254,7 +256,11 @@ const OrderHeader = ({ order }) => (
         Status: {order.status.toUpperCase()}
       </span>
       <p className="text-xs text-gray-500 mt-3">
-        Created: {new Date(order.createdAt).toLocaleTimeString()}
+        Created: {new Date(order.createdAt).toLocaleTimeString('en-US', {
+  hour12: true,
+  hour:   '2-digit',
+  minute: '2-digit',
+})}
       </p>
     </div>
   </div>
